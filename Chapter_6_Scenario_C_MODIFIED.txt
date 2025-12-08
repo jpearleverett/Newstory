@@ -14,51 +14,72 @@ Find your path below to see which status flags apply to YOUR story.
 PATH P2B1-A → Scenario C:
   ✅ EXPOSED/FAMOUS: YES (went public with footage)
   ✅ SEEKING_REDEMPTION: YES
+  ✅ HAS_LEDGER: YES (retrieved from Delaney's storage unit)
+  ✅ NO_ALLIES: YES (operating alone)
   ❓ WOUNDED: CHECK (depends on earlier choices)
   ❓ LIMITED_RESOURCES: CHECK (depends on earlier choices)
-  ❓ Other flags: CHECK based on your earlier path
+  ❓ INNOCENT_BLOOD: CHECK (depends on earlier choices)
+  ❓ DA_ALLY: CHECK (depends on earlier choices)
 
 PATH P2B2-B → Scenario C:
   ✅ EXPOSED/FAMOUS: YES (photograph broadcast)
   ✅ SEEKING_REDEMPTION: YES
+  ✅ NO_ALLIES: YES (operating alone)
+  ❌ NO_LEDGER: NO (no Ledger mentioned)
   ❓ WOUNDED: CHECK (depends on earlier choices)
   ❓ LIMITED_RESOURCES: CHECK (depends on earlier choices)
-  ❓ Other flags: CHECK based on your earlier path
+  ❓ INNOCENT_BLOOD: CHECK (depends on earlier choices)
+  ❓ DA_ALLY: CHECK (depends on earlier choices)
 
 PATH P3A2-B → Scenario C:
   ✅ SEEKING_REDEMPTION: YES
+  ✅ HAS_LEDGER: YES (photographed Ledger pages)
+  ✅ INNOCENT_BLOOD: YES (Harold Metz mentioned in PREVIOUSLY)
+  ✅ NO_ALLIES: YES (operating alone)
   ❌ EXPOSED/FAMOUS: NO (kept evidence hidden)
   ❓ WOUNDED: CHECK (depends on earlier choices)
   ❓ LIMITED_RESOURCES: CHECK (depends on earlier choices)
-  ❓ Other flags: CHECK based on your earlier path
+  ❓ DA_ALLY: CHECK (depends on earlier choices)
 
 PATH P3B2-A → Scenario C:
   ✅ EXPOSED/FAMOUS: YES (public testimony)
   ✅ SEEKING_REDEMPTION: YES
+  ✅ HAS_LEDGER: YES (delivered to Cross)
+  ✅ INNOCENT_BLOOD: YES (Harold Metz mentioned in PREVIOUSLY)
+  ✅ DA_ALLY: YES (working with DA Cross)
+  ✅ NO_ALLIES: YES (operating alone)
   ❓ WOUNDED: CHECK (depends on earlier choices)
   ❓ LIMITED_RESOURCES: CHECK (depends on earlier choices)
-  ❓ Other flags: CHECK based on your earlier path
 
 PATH P3B2-B → Scenario C:
   ✅ SEEKING_REDEMPTION: YES
+  ✅ HAS_LEDGER: YES (delivered to Cross)
+  ✅ INNOCENT_BLOOD: YES (Harold Metz mentioned in PREVIOUSLY)
+  ✅ DA_ALLY: YES (working with DA Cross)
+  ✅ NO_ALLIES: YES (operating alone)
   ❌ EXPOSED/FAMOUS: NO (worked from shadows)
   ❓ WOUNDED: CHECK (depends on earlier choices)
   ❓ LIMITED_RESOURCES: CHECK (depends on earlier choices)
-  ❓ Other flags: CHECK based on your earlier path
 
 PATH P4A1-B → Scenario C:
   ✅ SEEKING_REDEMPTION: YES
+  ✅ WOUNDED: YES (healing wound mentioned)
+  ✅ HAS_LEDGER: YES (delivered to Elara)
+  ✅ NO_ALLIES: YES (operating alone)
   ❌ EXPOSED/FAMOUS: NO (watched and waited)
-  ❓ WOUNDED: CHECK (depends on earlier choices)
   ❓ LIMITED_RESOURCES: CHECK (depends on earlier choices)
-  ❓ Other flags: CHECK based on your earlier path
+  ❓ INNOCENT_BLOOD: CHECK (depends on earlier choices)
+  ❓ DA_ALLY: CHECK (depends on earlier choices)
 
 PATH P4A2-A → Scenario C:
   ✅ SEEKING_REDEMPTION: YES
+  ✅ WOUNDED: YES (healing wound mentioned)
+  ✅ HAS_LEDGER: YES (delivered to Elara)
+  ✅ NO_ALLIES: YES (operating alone)
   ❌ EXPOSED/FAMOUS: NO (questioned Elara privately)
-  ❓ WOUNDED: CHECK (depends on earlier choices)
   ❓ LIMITED_RESOURCES: CHECK (depends on earlier choices)
-  ❓ Other flags: CHECK based on your earlier path
+  ❓ INNOCENT_BLOOD: CHECK (depends on earlier choices)
+  ❓ DA_ALLY: CHECK (depends on earlier choices)
 
 PATH P4B2-B → Scenario C:
   ✅ WOUNDED: YES (wounded in Chapter 5, healing but not fully recovered)
@@ -104,12 +125,12 @@ His face had been on every news broadcast for days now, the man who had exposed 
 The fame was a cage as much as a platform. Every movement was tracked, every statement analyzed, every decision scrutinized by an audience that had no understanding of what he had been through to reach this point. He couldn't disappear into the shadows anymore. The shadows had been burned away by flashbulbs and camera lights.
 
 [IF WOUNDED:]
-(Read this if you came via: P4B2-B, or check your path reference guide above)
+(Read this if you came via: P4A1-B, P4A2-A, P4B2-B)
 The bullet wound in his shoulder had healed enough to allow movement, but the pain remained, a constant companion that sharpened his focus even as it drained his reserves. The doctors had warned him against strenuous activity. Kael had nodded and ignored them. There were things more important than physical comfort, debts that couldn't wait for bodies to mend.
 He tested his range of motion, feeling the pull of scar tissue and the deeper ache of damage that might never fully repair. Good enough. It would have to be good enough.
 
 [IF LIMITED_RESOURCES:]
-(Read this if you came via: P4B2-B, or check your path reference guide above)
+(Read this if you came via: P4B2-B)
 His resources were laughable compared to what he was facing. A handgun with two spare magazines. A phone containing evidence that might or might not survive the night. The clothes on his back and the determination in his heart. No backup, no extraction plan, no cavalry waiting to ride to the rescue.
 The Whisper had armies of operatives. Victor Thorne had private security forces and corrupt police on his payroll. The official response would involve tactical teams and federal agents and enough firepower to level a city block.
 And Kael had a pistol and a prayer.
@@ -120,7 +141,7 @@ The word had become a mantra over the past weeks, repeated in quiet moments unti
 He didn't know if redemption was possible. He only knew that he had to try.
 
 [IF INNOCENT_BLOOD:]
-(Read this if you killed an innocent person in an earlier chapter - check your path reference guide above)
+(Read this if you came via: P3A2-B, P3B2-A, P3B2-B)
 Harold Metz appeared in the corner of the room, his spectral form more solid than it had been in days. The veteran's ghost had been a constant presence since the subway, watching, judging, reminding Kael of the price of his failures. Tonight, Harold seemed almost sympathetic, his hollow eyes holding something that might have been understanding.
 "You're going back," Harold said.
 "I have to."
@@ -130,12 +151,12 @@ Harold nodded slowly, as if this logic made sense to him. Perhaps it did. The ol
 "Then go," the ghost said. "But remember what I told you. The dead don't need vengeance. Only the living need that."
 
 [IF DA_ALLY (conditional or former):]
-(Read this if you're working with or have worked with DA Cross - check your path reference guide above)
+(Read this if you came via: P3B2-A, P3B2-B)
 DA Nathan Cross had called twice in the past hour, his messages increasingly urgent. The official response was mobilizing. Tactical teams were being briefed. The federal government was involved now, marshals and FBI agents adding their weight to the operation. Cross wanted Kael to stay away, to let the professionals handle The Whisper, to preserve himself as a witness for the trials that would follow.
 Kael hadn't returned the calls. Cross meant well, but Cross didn't understand. This wasn't about trials or testimony or the slow machinery of legal justice. This was about a woman chained in the darkness of an abandoned asylum, waiting for rescue or execution. This was about debts that couldn't be paid in courtrooms.
 
 [IF NO_ALLIES:]
-(Read this if you came via a path where you have no allies - SKIP if you came via P4B2-B)
+(Read this if you came via: P2B1-A, P2B2-B, P3A2-B, P3B2-A, P3B2-B, P4A1-B, P4A2-A - SKIP if you came via P4B2-B)
 The loneliness was the hardest part. Kael had burned so many bridges over the past weeks, pushed away so many potential allies, that he found himself utterly alone at the moment when company would have been most valuable. Torres didn't trust him anymore. Cross saw him as a liability. Miller wanted him dead. Elara saw him as a tool to be used and discarded.
 He had chosen this isolation, he reminded himself. Chosen it because he couldn't trust anyone, couldn't risk anyone else's life on his mistakes, couldn't bear the thought of watching another person die because of his failures.
 Now the cost of that choice was clear. He would face Blackwood alone, with nothing but his guilt and his determination to sustain him.
@@ -147,7 +168,7 @@ The city at night was a different creature than the city by day. Shadows pooled 
 He had borrowed a car from a contact who owed him a favor, one of the few debts he could still call in. The vehicle was nondescript, anonymous, the kind of car that disappeared into traffic and emerged from it without anyone noticing. Perfect for approaching a location that would be crawling with law enforcement and private security and god knew what else.
 
 [IF INNOCENT_BLOOD:]
-(Read this if you killed an innocent person in an earlier chapter - check your path reference guide above)
+(Read this if you came via: P3A2-B, P3B2-A, P3B2-B)
 Harold Metz sat in the passenger seat, his ghostly form occupying space without substance. The veteran stared out the window at the passing darkness, his expression unreadable.
 "I was stationed near a place like this once," Harold said. "Overseas. An old hospital the locals said was haunted. We used it as a forward operating base for three months. Lost four men there, not to enemy action, just to accidents and illness and the particular bad luck that some places seem to attract."
 "What happened?"
@@ -169,7 +190,7 @@ The perimeter security was concentrated near the main entrance, where the offici
 The asylum grounds had once been landscaped gardens, therapeutic spaces where troubled patients could walk among flowers and feel something approaching peace. Now the gardens were wilderness, decades of neglect transforming cultivated beauty into chaotic growth. Dead trees clawed at the sky. Overgrown hedges created walls of thorns that scratched at Kael's arms as he pushed through. The smell was decay and damp earth and something underneath, something organic, something that spoke of bodies returning to the soil.
 
 [IF WOUNDED:]
-(Read this if you came via: P4B2-B, or check your path reference guide above)
+(Read this if you came via: P4A1-B, P4A2-A, P4B2-B)
 The exertion pulled at his injured shoulder, sending waves of pain through his arm and chest. Kael gritted his teeth and kept moving. Pain was information, nothing more. Information that his body was damaged, that he was operating at reduced capacity, that any physical confrontation would put him at a severe disadvantage. Useful information, but not actionable. He couldn't afford to slow down.
 
 The coal chute was where Delaney had described it, a rusted metal panel set into the asylum's foundation, hidden behind a tangle of dead vines. Kael worked at the edges with his knife, prying the corroded metal away from stone that crumbled at his touch. The opening revealed was narrow, barely wide enough for his shoulders, angling downward into absolute darkness.
@@ -188,7 +209,7 @@ The chute deposited Kael in a basement corridor that time had treated unkindly. 
 He moved carefully, testing each footfall, listening for any sound that might indicate he wasn't alone. The basement was silent except for the drip of water and the distant rumble of what might have been the official assault beginning far above.
 
 [IF LIMITED_RESOURCES:]
-(Read this if you came via: P4B2-B, or check your path reference guide above)
+(Read this if you came via: P4B2-B)
 His flashlight was a small tactical model, its beam barely sufficient to illuminate the corridor ahead. Kael used it sparingly, flicking it on to check his path, then off again to preserve his night vision and reduce the chance of detection. The darkness pressed close around him, thick and almost tangible, the kind of darkness that seemed to have weight and substance.
 Every resource counted now. Every bullet, every minute of battery life, every ounce of energy. He couldn't afford to waste anything on the approach. Whatever he had left when he reached the surgical theater would have to be enough.
 
@@ -209,7 +230,7 @@ One message caught his attention, carved deep into the wall near a doorway: "GOD
 The sentiment resonated more than Kael wanted to admit.
 
 [IF INNOCENT_BLOOD:]
-(Read this if you killed an innocent person in an earlier chapter - check your path reference guide above)
+(Read this if you came via: P3A2-B, P3B2-A, P3B2-B)
 "The people who lived here," Harold said, walking beside Kael through the ruined corridor. "They were the ones society didn't want to think about. The broken ones, the dangerous ones, the ones whose minds worked differently than everyone expected. They locked them away in places like this and pretended they didn't exist."
 "That's what asylums were for."
 "That's what everything is for. Hiding the parts of ourselves we don't want to see. Locking them away where they can't embarrass us." Harold's ghost stopped at a doorway, peering into the room beyond. "But the locked-away parts don't disappear. They just wait. And eventually, they break free."
@@ -220,7 +241,7 @@ Kael counted to twenty, then resumed his advance.
 The second floor was worse than the first. This had been the high-security ward, the place where the most dangerous patients had been kept. The doors here were reinforced steel, many still locked, containing whatever remained of the people who had been imprisoned behind them. Some doors showed signs of violence, dents and scratches where desperate hands had tried to break free. Others were simply closed, silent, secrets that no one had bothered to uncover when the asylum was abandoned.
 
 [IF WOUNDED:]
-(Read this if you came via: P4B2-B, or check your path reference guide above)
+(Read this if you came via: P4A1-B, P4A2-A, P4B2-B)
 The climb was taking its toll. Kael's shoulder screamed with every movement, the pain radiating down his arm and across his chest. He paused on the second floor landing, leaning against the wall, waiting for the worst of the agony to pass. His vision swam. His heart pounded. His body was telling him to stop, to rest, to give up this foolish mission and find somewhere safe to heal.
 He ignored it. Bodies could be pushed past their limits. He had done it before. He would do it again.
 
@@ -244,7 +265,7 @@ He stood beside the operating table with the casual posture of someone in comple
 "Everything ends in blood. That's the lesson I've learned in twenty years of seeking justice. The system fails. The courts fail. The politicians and the police and the prosecutors, they all fail. Only blood speaks loudly enough to be heard."
 
 [IF LIMITED_RESOURCES:]
-(Read this if you came via: P4B2-B, or check your path reference guide above)
+(Read this if you came via: P4B2-B)
 Kael was acutely aware of his disadvantages. One pistol against whatever weapons The Whisper had concealed. One man against a killer who had survived two decades of hunting and being hunted. One chance to do something right in a life that had been defined by doing things wrong.
 The math was terrible. But math had never been the point.
 
@@ -261,14 +282,14 @@ The Whisper's grip on his blade loosened slightly. Not much, just a fraction of 
 "No. But it's a start."
 
 [IF INNOCENT_BLOOD:]
-(Read this if you killed an innocent person in an earlier chapter - check your path reference guide above)
+(Read this if you came via: P3A2-B, P3B2-A, P3B2-B)
 Harold Metz stood in the corner of the surgical theater, watching the confrontation with the hollow attention of the dead. The ghost didn't speak, didn't offer advice, simply observed. A witness to whatever would happen next.
 "I've killed too," Kael said. The admission came easier than he expected, the weight of the secret diminished by sharing it. "An innocent man. Harold Metz. Veteran of two wars. He was in the wrong place at the wrong time, and I pulled the trigger before I understood what I was doing."
 The Whisper's eyes narrowed. "You confess your sins to me? Why?"
 "Because I need you to understand that I know what it feels like. The weight of blood that won't wash off. The faces that appear when you close your eyes. The knowledge that nothing you do will ever be enough to balance the scales." Kael's voice was steady, but his hands were shaking. "I'm not here as a representative of the system. I'm here as someone who has failed as badly as you have, in different ways, trying to figure out if there's any path forward that doesn't end in more death."
 
 [IF WOUNDED:]
-(Read this if you came via: P4B2-B, or check your path reference guide above)
+(Read this if you came via: P4A1-B, P4A2-A, P4B2-B)
 The pain in Kael's shoulder was a distant thing now, pushed to the edges of his awareness by adrenaline and focus. He knew it would return later, would demand attention and rest and probably medical care he couldn't afford. But later was a concept that had lost meaning. There was only now, only this room, only the woman on the table and the man with the blade and the choice that had to be made.
 "You're hurt," The Whisper observed. "The wound from the subway, I assume. You should be in a hospital, not climbing through condemned buildings."
 "Probably. But Lila Thorne would be dead by the time I finished healing. So here I am."
@@ -292,23 +313,23 @@ The Whisper's eyebrows rose. "Break it?"
 "And you think that's possible? After everything?"
 
 [IF HAS_LEDGER:]
-(Read this if you have the Ledger evidence - check your path reference guide above)
+(Read this if you came via: P2B1-A, P3A2-B, P3B2-A, P3B2-B, P4A1-B, P4A2-A)
 "They pinned twenty murders on you, Thomas. We both know you only committed seven. I saw the Ledger. I saw the fake ballistics reports for the Dockside Jane Doe—the rifling match filed two days before the body was found. Thorne and the police killed the other thirteen to hide their dirty work. They turned a grieving father into a serial killer to solve their own problems."
 
 [IF NO_LEDGER:]
-(Read this if you don't have the Ledger evidence - check your path reference guide above)
+(Read this if you came via: P2B2-B, P4B2-B)
 "They pinned twenty murders on you, Thomas. But the pattern doesn't fit, does it? Some of those victims had connections to Thorne's business. Some of them knew things they shouldn't have known. You were convenient—a monster they could blame for their own housecleaning."
 
 The Whisper's expression flickered. "You figured that out on your own?"
 "I've been looking at the evidence for weeks. The math doesn't add up. It never did."
 
 [IF NO_ALLIES:]
-(Read this if you came via a path where you have no allies - SKIP if you came via P4B2-B)
+(Read this if you came via: P2B1-A, P2B2-B, P3A2-B, P3B2-A, P3B2-B, P4A1-B, P4A2-A - SKIP if you came via P4B2-B)
 Kael was alone in the room with a killer, a hostage, and a choice that would define everything that came after. No backup, no extraction plan, no cavalry waiting to ride to the rescue. Just words, and the hope that words could accomplish what violence had failed to achieve.
 "I don't have anyone waiting outside to arrest you. I don't have a tactical team ready to breach the door. It's just me, making an appeal to whatever part of you still believes that justice means more than revenge."
 
 [IF DA_ALLY (former):]
-(Read this if you're working with or have worked with DA Cross - check your path reference guide above)
+(Read this if you came via: P3B2-A, P3B2-B)
 "DA Cross is out there somewhere, coordinating the official response. He wants you alive, Thomas. He wants you to testify against Victor Thorne, to be the witness who finally makes the case stick. Everything you've gathered over twenty years, all the evidence, all the documentation, it could be the foundation for the biggest corruption prosecution in the city's history."
 "And what do I get in return? A cell? A trial where Thorne's lawyers tear apart everything I've built?"
 "You get to speak. In a courtroom, on the record, with the whole world watching. You get to say Emily's name and have it matter. You get to be more than The Whisper, more than a killer, more than a cautionary tale. You get to be the man who finally held the powerful accountable."
