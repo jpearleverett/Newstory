@@ -429,6 +429,55 @@ export const translations = {
     // MasScreen - Language display
     language_spanish: 'Español',
     language_english: 'English',
+
+    // Energy Check Modal (Morning Pulse)
+    energy_question: '¿Cómo está tu batería hoy?',
+    energy_subtitle: 'Desliza para indicar tu nivel de energía',
+    energy_message_low: 'Está bien ir despacio hoy',
+    energy_message_medium: 'Tienes un buen balance',
+    energy_message_high: '¡Estás cargado de energía!',
+    energy_skip: 'Saltar',
+    energy_continue: 'Continuar',
+    energy_compassionate: 'No hay nivel "correcto". Tu energía es válida tal como es.',
+
+    // Sunrise Reset Modal
+    sunrise_welcome_back: '¡Bienvenido/a de vuelta!',
+    sunrise_message: 'La vida pasó. No pasa nada. Empecemos de nuevo.',
+    sunrise_backlog_count: '{{count}} tareas movidas al archivo',
+    sunrise_fresh_start: 'Empezar fresco',
+    sunrise_view_backlog: 'Ver tareas archivadas',
+    sunrise_compassionate: 'Esta app se adapta a ti, no al revés. Cada día es un nuevo comienzo.',
+
+    // Day Timeline Bar
+    timeline_your_day: 'Tu día',
+    timeline_remaining: '{{time}} restantes',
+    timeline_message_morning: 'La mañana es tuya. ¿Qué es lo más importante?',
+    timeline_message_midday: 'Mitad del día. Chequea tu progreso.',
+    timeline_message_evening: 'La tarde avanza. Celebra lo que lograste.',
+    timeline_message_night: 'Es hora de descansar. Mañana es otro día.',
+
+    // Body Doubling Counter
+    body_doubling_message: 'personas enfocándose contigo',
+    body_doubling_focusing: 'enfocándose',
+
+    // Focus Timer additions
+    focus_body_doubling: 'personas enfocándose contigo',
+
+    // Manifestation Modal (369 Practice)
+    manifestation_title: 'Manifestación 369',
+    manifestation_subtitle: 'Enfoca tu intención',
+    manifestation_morning: 'Mañana',
+    manifestation_afternoon: 'Tarde',
+    manifestation_evening: 'Noche',
+    manifestation_intention_label: 'Tu intención',
+    manifestation_placeholder: 'Escribe lo que deseas manifestar...',
+    manifestation_progress: '{{current}}/{{target}} afirmaciones',
+    manifestation_affirm: 'Afirmar',
+    manifestation_complete: '¡Completaste este período!',
+    manifestation_how: '¿Cómo funciona?',
+    manifestation_morning_instruction: 'Escribe tu intención 3 veces por la mañana',
+    manifestation_afternoon_instruction: 'Escribe tu intención 6 veces por la tarde',
+    manifestation_evening_instruction: 'Escribe tu intención 9 veces por la noche',
   },
   en: {
     // Navigation & Common
@@ -860,5 +909,54 @@ export const translations = {
     // MasScreen - Language display
     language_spanish: 'Español',
     language_english: 'English',
+
+    // Energy Check Modal (Morning Pulse)
+    energy_question: 'How is your battery today?',
+    energy_subtitle: 'Slide to indicate your energy level',
+    energy_message_low: 'It\'s okay to go slow today',
+    energy_message_medium: 'You have a good balance',
+    energy_message_high: 'You\'re fully charged!',
+    energy_skip: 'Skip',
+    energy_continue: 'Continue',
+    energy_compassionate: 'There\'s no "right" level. Your energy is valid as it is.',
+
+    // Sunrise Reset Modal
+    sunrise_welcome_back: 'Welcome back!',
+    sunrise_message: 'Life happened. It\'s okay. Let\'s start fresh.',
+    sunrise_backlog_count: '{{count}} tasks moved to archive',
+    sunrise_fresh_start: 'Start Fresh',
+    sunrise_view_backlog: 'View archived tasks',
+    sunrise_compassionate: 'This app adapts to you, not the other way around. Every day is a new beginning.',
+
+    // Day Timeline Bar
+    timeline_your_day: 'Your day',
+    timeline_remaining: '{{time}} remaining',
+    timeline_message_morning: 'The morning is yours. What\'s most important?',
+    timeline_message_midday: 'Midday. Check your progress.',
+    timeline_message_evening: 'The afternoon is passing. Celebrate what you\'ve done.',
+    timeline_message_night: 'It\'s time to rest. Tomorrow is another day.',
+
+    // Body Doubling Counter
+    body_doubling_message: 'people focusing with you',
+    body_doubling_focusing: 'focusing',
+
+    // Focus Timer additions
+    focus_body_doubling: 'people focusing with you',
+
+    // Manifestation Modal (369 Practice)
+    manifestation_title: '369 Manifestation',
+    manifestation_subtitle: 'Focus your intention',
+    manifestation_morning: 'Morning',
+    manifestation_afternoon: 'Afternoon',
+    manifestation_evening: 'Evening',
+    manifestation_intention_label: 'Your intention',
+    manifestation_placeholder: 'Write what you want to manifest...',
+    manifestation_progress: '{{current}}/{{target}} affirmations',
+    manifestation_affirm: 'Affirm',
+    manifestation_complete: 'You completed this period!',
+    manifestation_how: 'How does it work?',
+    manifestation_morning_instruction: 'Write your intention 3 times in the morning',
+    manifestation_afternoon_instruction: 'Write your intention 6 times in the afternoon',
+    manifestation_evening_instruction: 'Write your intention 9 times in the evening',
   }
 };

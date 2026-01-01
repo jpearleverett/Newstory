@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, Dimensions, StatusBar } from 'react-native';
+import { View, Text, Modal, StyleSheet, TouchableOpacity, Dimensions, StatusBar, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -9,24 +9,41 @@ interface FocusTimerModalProps {
   visible: boolean;
   onClose: () => void;
   projectName: string;
+  onBodyDoubling?: () => void;
 }
 
 const { width } = Dimensions.get('window');
+const HEARTBEAT_INTERVAL = 5 * 60; // Every 5 minutes
 
-export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ visible, onClose, projectName }) => {
+export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({
+  visible,
+  onClose,
+  projectName,
+  onBodyDoubling,
+}) => {
   const { t } = useLanguage();
   const INITIAL_TIME = 25 * 60;
   const [timeLeft, setTimeLeft] = useState(INITIAL_TIME);
   const [isActive, setIsActive] = useState(false);
+  const [focusingCount, setFocusingCount] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
+  const lastHeartbeatTime = useRef(INITIAL_TIME);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (visible) {
       setTimeLeft(INITIAL_TIME);
       setIsActive(false);
+      lastHeartbeatTime.current = INITIAL_TIME;
+
+      // Simulate body doubling count
+      const baseCount = 300 + Math.floor(Math.random() * 200);
+      setFocusingCount(baseCount);
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     };
   }, [visible]);
 
@@ -35,18 +52,59 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ visible, onClo
       intervalRef.current = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
+
+      // Check for heartbeat trigger every second (based on time elapsed)
+      const elapsedSinceHeartbeat = lastHeartbeatTime.current - timeLeft;
+      if (elapsedSinceHeartbeat >= HEARTBEAT_INTERVAL) {
+        triggerHeartbeat();
+        lastHeartbeatTime.current = timeLeft;
+      }
     } else if (timeLeft === 0) {
       setIsActive(false);
       haptic.success();
       if (intervalRef.current) clearInterval(intervalRef.current);
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     } else {
-        if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     }
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [isActive, timeLeft]);
+
+  // Heartbeat animation and haptic feedback
+  const triggerHeartbeat = () => {
+    // Gentle haptic pulse (like a heartbeat)
+    haptic.light();
+    setTimeout(() => haptic.light(), 150); // Second beat
+
+    // Visual pulse animation
+    Animated.sequence([
+      Animated.timing(pulseAnim, {
+        toValue: 1.05,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.delay(100),
+      Animated.timing(pulseAnim, {
+        toValue: 1.03,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
 
   const toggleTimer = () => {
     haptic.selection();
@@ -96,15 +154,20 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ visible, onClo
             {projectName || t('focus_default_task')}
           </Text>
           
-          {/* Visual Timer Indicator */}
-          <View style={[styles.timerContainer, { borderColor: currentColor }]}>
+          {/* Visual Timer Indicator with Pulse Animation */}
+          <Animated.View
+            style={[
+              styles.timerContainer,
+              { borderColor: currentColor, transform: [{ scale: pulseAnim }] },
+            ]}
+          >
             <Text style={[styles.timerText, { color: currentColor }]}>
               {formatTime(timeLeft)}
             </Text>
             <Text style={styles.statusText}>
               {isActive ? t('focusing') : t('paused')}
             </Text>
-          </View>
+          </Animated.View>
 
           {/* Progress Bar */}
           <View style={styles.progressBarContainer}>
@@ -136,8 +199,16 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ visible, onClo
           </View>
         </View>
 
-        {/* Motivational Tip */}
+        {/* Motivational Tip & Body Doubling */}
         <View style={styles.footer}>
+          {/* Body Doubling Counter */}
+          <View style={styles.bodyDoublingContainer}>
+            <View style={styles.bodyDoublingDot} />
+            <Text style={styles.bodyDoublingText}>
+              {focusingCount.toLocaleString()} {t('focus_body_doubling')}
+            </Text>
+          </View>
+
           <Text style={styles.tipText}>
             {isActive ? t('focus_breath') : t('focus_ready')}
           </Text>
@@ -240,6 +311,26 @@ const styles = StyleSheet.create({
   footer: {
     paddingBottom: spacing.xl,
     alignItems: 'center',
+  },
+  bodyDoublingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.round,
+    marginBottom: spacing.md,
+    gap: spacing.xs,
+  },
+  bodyDoublingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#27AE60',
+  },
+  bodyDoublingText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: fontSize.sm,
   },
   tipText: {
     color: colors.textMuted,
