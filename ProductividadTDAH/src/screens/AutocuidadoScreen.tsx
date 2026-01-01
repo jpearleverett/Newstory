@@ -3,28 +3,16 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
-import { Card, Button, Input, ProgressBar } from '../components';
 import { useData, SelfCareEntry } from '../context/DataContext';
-
-const waterGlasses = [1, 2, 3, 4, 5, 6, 7, 8];
-const sleepHours = [4, 5, 6, 7, 8, 9, 10];
-
-const exerciseTypes = [
-  { id: 'caminar', name: 'Caminar', icon: 'walk-outline' },
-  { id: 'correr', name: 'Correr', icon: 'fitness-outline' },
-  { id: 'yoga', name: 'Yoga', icon: 'body-outline' },
-  { id: 'pesas', name: 'Pesas', icon: 'barbell-outline' },
-  { id: 'nadar', name: 'Nadar', icon: 'water-outline' },
-  { id: 'bailar', name: 'Bailar', icon: 'musical-notes-outline' },
-  { id: 'estirar', name: 'Estirar', icon: 'resize-outline' },
-  { id: 'otro', name: 'Otro', icon: 'ellipsis-horizontal-outline' },
-];
+import haptic from '../utils/haptics';
 
 interface AutocuidadoScreenProps {
   navigation: any;
 }
+
+// ADHD-Friendly: Reduced from 7+ trackers to just 3 essential ones
+// Research says: "Complicated apps are a no-go. ADHD brains thrive on straightforward tools"
 
 export const AutocuidadoScreen: React.FC<AutocuidadoScreenProps> = ({ navigation }) => {
   const { getSelfCareEntry, addSelfCareEntry } = useData();
@@ -37,76 +25,71 @@ export const AutocuidadoScreen: React.FC<AutocuidadoScreenProps> = ({ navigation
     exercise: null,
     meals: { breakfast: '', lunch: '', dinner: '', snacks: [] },
     meditation: 0,
-    gratitude: ['', '', ''],
-    wins: ['', '', ''],
+    gratitude: [],
+    wins: [],
   });
 
-  const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
-  const [exerciseDuration, setExerciseDuration] = useState('');
-  const [newSnack, setNewSnack] = useState('');
+  const [movedToday, setMovedToday] = useState(false);
 
   useEffect(() => {
     const existingEntry = getSelfCareEntry(today);
     if (existingEntry) {
       setEntry(existingEntry);
-      if (existingEntry.exercise) {
-        setSelectedExercise(existingEntry.exercise.type);
-        setExerciseDuration(existingEntry.exercise.duration.toString());
-      }
+      setMovedToday(existingEntry.exercise !== null);
     }
   }, []);
 
-  const handleSave = async () => {
+  const saveEntry = async (updates: Partial<SelfCareEntry>) => {
+    const updatedEntry = { ...entry, ...updates };
+    setEntry(updatedEntry);
     await addSelfCareEntry({
       date: today,
-      water: entry.water || 0,
-      sleep: entry.sleep || 7,
-      exercise: selectedExercise && exerciseDuration
-        ? { type: selectedExercise, duration: parseInt(exerciseDuration) }
-        : null,
-      meals: entry.meals || { breakfast: '', lunch: '', dinner: '', snacks: [] },
-      meditation: entry.meditation || 0,
-      gratitude: entry.gratitude || [],
-      wins: entry.wins || [],
+      water: updatedEntry.water || 0,
+      sleep: updatedEntry.sleep || 7,
+      exercise: updatedEntry.exercise || null,
+      meals: updatedEntry.meals || { breakfast: '', lunch: '', dinner: '', snacks: [] },
+      meditation: updatedEntry.meditation || 0,
+      gratitude: updatedEntry.gratitude || [],
+      wins: updatedEntry.wins || [],
     });
   };
 
-  const updateGratitude = (index: number, value: string) => {
-    const newGratitude = [...(entry.gratitude || ['', '', ''])];
-    newGratitude[index] = value;
-    setEntry(prev => ({ ...prev, gratitude: newGratitude }));
+  const toggleWater = (glasses: number) => {
+    haptic.light();
+    saveEntry({ water: glasses });
   };
 
-  const updateWins = (index: number, value: string) => {
-    const newWins = [...(entry.wins || ['', '', ''])];
-    newWins[index] = value;
-    setEntry(prev => ({ ...prev, wins: newWins }));
+  const selectSleep = (hours: number) => {
+    haptic.selection();
+    saveEntry({ sleep: hours });
   };
 
-  const addSnack = () => {
-    if (newSnack.trim()) {
-      const currentSnacks = entry.meals?.snacks || [];
-      setEntry(prev => ({
-        ...prev,
-        meals: { ...prev.meals!, snacks: [...currentSnacks, newSnack.trim()] },
-      }));
-      setNewSnack('');
-    }
+  const toggleMovement = () => {
+    haptic.medium();
+    const newMoved = !movedToday;
+    setMovedToday(newMoved);
+    saveEntry({
+      exercise: newMoved ? { type: 'movimiento', duration: 1 } : null,
+    });
   };
 
+  // Simple wellness score based on 3 things
   const getWellnessScore = () => {
     let score = 0;
-    if ((entry.water || 0) >= 6) score += 20;
-    else if ((entry.water || 0) >= 4) score += 10;
-    if ((entry.sleep || 0) >= 7) score += 20;
-    else if ((entry.sleep || 0) >= 6) score += 10;
-    if (selectedExercise && exerciseDuration) score += 20;
-    if (entry.meals?.breakfast) score += 10;
-    if (entry.meals?.lunch) score += 10;
-    if (entry.meals?.dinner) score += 10;
-    if ((entry.meditation || 0) > 0) score += 10;
+    if ((entry.water || 0) >= 4) score++; // Drank at least 4 glasses
+    if ((entry.sleep || 0) >= 7) score++; // Slept at least 7 hours
+    if (movedToday) score++; // Moved today
     return score;
   };
+
+  const wellnessScore = getWellnessScore();
+  const wellnessMessage = wellnessScore === 3
+    ? '¡Excelente autocuidado hoy!'
+    : wellnessScore === 2
+    ? '¡Vas muy bien!'
+    : wellnessScore === 1
+    ? 'Un paso a la vez'
+    : 'Cada pequeña acción cuenta';
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -117,278 +100,153 @@ export const AutocuidadoScreen: React.FC<AutocuidadoScreenProps> = ({ navigation
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.title}>Autocuidado</Text>
-            <Text style={styles.subtitle}>Cuida tu cuerpo y mente</Text>
+            <Text style={styles.title}>Bienestar</Text>
+            <Text style={styles.subtitle}>Solo 3 cosas importan hoy</Text>
           </View>
-          <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-            <Ionicons name="checkmark-circle" size={32} color={colors.autocuidado} />
-          </TouchableOpacity>
         </View>
 
         {/* Wellness Score */}
-        <Card variant="elevated" style={styles.scoreCard}>
-          <View style={styles.scoreHeader}>
-            <Text style={styles.scoreTitle}>Bienestar de Hoy</Text>
-            <View style={styles.scoreCircle}>
-              <Text style={styles.scoreNumber}>{getWellnessScore()}</Text>
-              <Text style={styles.scoreMax}>/100</Text>
+        <View style={styles.scoreCard}>
+          <View style={styles.scoreRow}>
+            {[0, 1, 2].map((i) => (
+              <View
+                key={i}
+                style={[
+                  styles.scoreDot,
+                  i < wellnessScore && styles.scoreDotFilled,
+                ]}
+              />
+            ))}
+          </View>
+          <Text style={styles.scoreMessage}>{wellnessMessage}</Text>
+        </View>
+
+        {/* 1. WATER - Simplified to 4 or 8 */}
+        <View style={styles.trackerCard}>
+          <View style={styles.trackerHeader}>
+            <View style={[styles.trackerIcon, { backgroundColor: colors.priorizacion + '20' }]}>
+              <Ionicons name="water" size={24} color={colors.priorizacion} />
+            </View>
+            <View style={styles.trackerInfo}>
+              <Text style={styles.trackerTitle}>Agua</Text>
+              <Text style={styles.trackerSubtitle}>
+                {(entry.water || 0) >= 4 ? '¡Bien hidratado!' : '¿Tomaste agua?'}
+              </Text>
             </View>
           </View>
-          <ProgressBar
-            progress={getWellnessScore()}
-            color={colors.autocuidado}
-            height={10}
-          />
-          <Text style={styles.scoreMessage}>
-            {getWellnessScore() >= 80 ? '¡Excelente día de autocuidado!' :
-             getWellnessScore() >= 50 ? '¡Vas muy bien! Sigue así.' :
-             'Cada pequeño paso cuenta.'}
-          </Text>
-        </Card>
 
-        {/* Hydration */}
-        <Card variant="elevated" style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="water" size={24} color={colors.priorizacion} />
-            <Text style={styles.sectionTitle}>Hidratación</Text>
-            <Text style={styles.sectionValue}>{entry.water || 0}/8 vasos</Text>
-          </View>
-          <View style={styles.waterContainer}>
-            {waterGlasses.map((glass) => (
+          <View style={styles.waterRow}>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((glass) => (
               <TouchableOpacity
                 key={glass}
                 style={[
                   styles.waterGlass,
                   (entry.water || 0) >= glass && styles.waterGlassFilled,
                 ]}
-                onPress={() => setEntry(prev => ({ ...prev, water: glass }))}
+                onPress={() => toggleWater(glass)}
               >
                 <Ionicons
                   name="water"
-                  size={24}
+                  size={20}
                   color={(entry.water || 0) >= glass ? colors.white : colors.priorizacion}
                 />
               </TouchableOpacity>
             ))}
           </View>
-        </Card>
+          <Text style={styles.waterCount}>{entry.water || 0} vasos</Text>
+        </View>
 
-        {/* Sleep */}
-        <Card variant="elevated" style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="moon" size={24} color={colors.proyectos} />
-            <Text style={styles.sectionTitle}>Sueño</Text>
-            <Text style={styles.sectionValue}>{entry.sleep || 7} horas</Text>
+        {/* 2. SLEEP - Simplified */}
+        <View style={styles.trackerCard}>
+          <View style={styles.trackerHeader}>
+            <View style={[styles.trackerIcon, { backgroundColor: colors.proyectos + '20' }]}>
+              <Ionicons name="moon" size={24} color={colors.proyectos} />
+            </View>
+            <View style={styles.trackerInfo}>
+              <Text style={styles.trackerTitle}>Sueño</Text>
+              <Text style={styles.trackerSubtitle}>
+                {(entry.sleep || 0) >= 7 ? '¡Buen descanso!' : '¿Cuántas horas dormiste?'}
+              </Text>
+            </View>
           </View>
-          <View style={styles.sleepContainer}>
-            {sleepHours.map((hour) => (
+
+          <View style={styles.sleepRow}>
+            {[5, 6, 7, 8, 9].map((hours) => (
               <TouchableOpacity
-                key={hour}
+                key={hours}
                 style={[
                   styles.sleepButton,
-                  entry.sleep === hour && styles.sleepButtonSelected,
+                  entry.sleep === hours && styles.sleepButtonSelected,
                 ]}
-                onPress={() => setEntry(prev => ({ ...prev, sleep: hour }))}
+                onPress={() => selectSleep(hours)}
               >
                 <Text style={[
-                  styles.sleepButtonText,
-                  entry.sleep === hour && styles.sleepButtonTextSelected,
+                  styles.sleepText,
+                  entry.sleep === hours && styles.sleepTextSelected,
                 ]}>
-                  {hour}h
+                  {hours}h
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
-        </Card>
-
-        {/* Exercise */}
-        <Card variant="elevated" style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="fitness" size={24} color={colors.olive} />
-            <Text style={styles.sectionTitle}>Ejercicio</Text>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.exerciseScroll}>
-            {exerciseTypes.map((type) => (
-              <TouchableOpacity
-                key={type.id}
-                style={[
-                  styles.exerciseChip,
-                  selectedExercise === type.id && { backgroundColor: colors.olive },
-                ]}
-                onPress={() => setSelectedExercise(
-                  selectedExercise === type.id ? null : type.id
-                )}
-              >
-                <Ionicons
-                  name={type.icon as any}
-                  size={20}
-                  color={selectedExercise === type.id ? colors.white : colors.olive}
-                />
-                <Text style={[
-                  styles.exerciseChipText,
-                  selectedExercise === type.id && { color: colors.white },
-                ]}>
-                  {type.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          {selectedExercise && (
-            <Input
-              label="Duración (minutos)"
-              placeholder="30"
-              value={exerciseDuration}
-              onChangeText={setExerciseDuration}
-              keyboardType="number-pad"
-            />
-          )}
-        </Card>
-
-        {/* Meals */}
-        <Card variant="elevated" style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="restaurant" size={24} color={colors.orange} />
-            <Text style={styles.sectionTitle}>Comidas</Text>
-          </View>
-          <Input
-            label="Desayuno"
-            placeholder="¿Qué desayunaste?"
-            value={entry.meals?.breakfast || ''}
-            onChangeText={(value) => setEntry(prev => ({
-              ...prev,
-              meals: { ...prev.meals!, breakfast: value },
-            }))}
-          />
-          <Input
-            label="Almuerzo"
-            placeholder="¿Qué almorzaste?"
-            value={entry.meals?.lunch || ''}
-            onChangeText={(value) => setEntry(prev => ({
-              ...prev,
-              meals: { ...prev.meals!, lunch: value },
-            }))}
-          />
-          <Input
-            label="Cena"
-            placeholder="¿Qué cenaste?"
-            value={entry.meals?.dinner || ''}
-            onChangeText={(value) => setEntry(prev => ({
-              ...prev,
-              meals: { ...prev.meals!, dinner: value },
-            }))}
-          />
-          <View style={styles.snacksRow}>
-            <Input
-              label="Snacks"
-              placeholder="Agregar snack"
-              value={newSnack}
-              onChangeText={setNewSnack}
-              containerStyle={{ flex: 1, marginRight: spacing.sm }}
-            />
-            <TouchableOpacity style={styles.addSnackButton} onPress={addSnack}>
-              <Ionicons name="add" size={24} color={colors.white} />
-            </TouchableOpacity>
-          </View>
-          {(entry.meals?.snacks || []).length > 0 && (
-            <View style={styles.snacksList}>
-              {entry.meals?.snacks.map((snack, index) => (
-                <View key={index} style={styles.snackChip}>
-                  <Text style={styles.snackText}>{snack}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </Card>
-
-        {/* Meditation */}
-        <Card variant="elevated" style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="leaf" size={24} color={colors.dinero} />
-            <Text style={styles.sectionTitle}>Meditación/Mindfulness</Text>
-          </View>
-          <View style={styles.meditationContainer}>
-            {[0, 5, 10, 15, 20, 30].map((minutes) => (
-              <TouchableOpacity
-                key={minutes}
-                style={[
-                  styles.meditationButton,
-                  entry.meditation === minutes && { backgroundColor: colors.dinero },
-                ]}
-                onPress={() => setEntry(prev => ({ ...prev, meditation: minutes }))}
-              >
-                <Text style={[
-                  styles.meditationButtonText,
-                  entry.meditation === minutes && { color: colors.white },
-                ]}>
-                  {minutes === 0 ? 'No' : `${minutes} min`}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Card>
-
-        {/* Gratitude */}
-        <Card variant="elevated" style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="heart" size={24} color={colors.pink} />
-            <Text style={styles.sectionTitle}>Gratitud</Text>
-          </View>
-          <Text style={styles.sectionDescription}>
-            3 cosas por las que estás agradecido/a hoy
-          </Text>
-          {(entry.gratitude || ['', '', '']).map((item, index) => (
-            <Input
-              key={index}
-              placeholder={`${index + 1}. Estoy agradecido/a por...`}
-              value={item}
-              onChangeText={(value) => updateGratitude(index, value)}
-            />
-          ))}
-        </Card>
-
-        {/* Daily Wins */}
-        <Card variant="elevated" style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="trophy" size={24} color={colors.orange} />
-            <Text style={styles.sectionTitle}>Victorias del Día</Text>
-          </View>
-          <Text style={styles.sectionDescription}>
-            Celebra tus logros, por pequeños que sean
-          </Text>
-          {(entry.wins || ['', '', '']).map((item, index) => (
-            <Input
-              key={index}
-              placeholder={`${index + 1}. Hoy logré...`}
-              value={item}
-              onChangeText={(value) => updateWins(index, value)}
-            />
-          ))}
-        </Card>
-
-        {/* Tips */}
-        <Card style={styles.tipsCard}>
-          <View style={styles.tipsHeader}>
-            <Ionicons name="bulb" size={20} color={colors.orange} />
-            <Text style={styles.tipsTitle}>Tips de Autocuidado para TDAH</Text>
-          </View>
-          <Text style={styles.tipsText}>
-            • No tienes que ser perfecto/a{'\n'}
-            • Pequeñas acciones suman grandes resultados{'\n'}
-            • El movimiento ayuda a regular emociones{'\n'}
-            • El sueño es medicina para tu cerebro{'\n'}
-            • Celebra cada vez que recuerdas cuidarte
-          </Text>
-        </Card>
-
-        {/* Save Button */}
-        <View style={styles.saveButtonContainer}>
-          <Button
-            title="Guardar día"
-            onPress={handleSave}
-            variant="primary"
-            color={colors.autocuidado}
-          />
         </View>
+
+        {/* 3. MOVEMENT - Simple toggle */}
+        <TouchableOpacity
+          style={[
+            styles.trackerCard,
+            styles.movementCard,
+            movedToday && styles.movementCardActive,
+          ]}
+          onPress={toggleMovement}
+          activeOpacity={0.8}
+        >
+          <View style={styles.trackerHeader}>
+            <View style={[
+              styles.trackerIcon,
+              { backgroundColor: movedToday ? colors.white + '30' : colors.primary + '20' },
+            ]}>
+              <Ionicons
+                name={movedToday ? 'checkmark' : 'fitness'}
+                size={24}
+                color={movedToday ? colors.white : colors.primary}
+              />
+            </View>
+            <View style={styles.trackerInfo}>
+              <Text style={[
+                styles.trackerTitle,
+                movedToday && styles.movementTitleActive,
+              ]}>
+                Movimiento
+              </Text>
+              <Text style={[
+                styles.trackerSubtitle,
+                movedToday && styles.movementSubtitleActive,
+              ]}>
+                {movedToday ? '¡Te moviste hoy!' : 'Toca si te moviste hoy'}
+              </Text>
+            </View>
+            {movedToday && (
+              <Ionicons name="checkmark-circle" size={32} color={colors.white} />
+            )}
+          </View>
+
+          {!movedToday && (
+            <Text style={styles.movementHint}>
+              Cualquier cosa cuenta: caminar, estirar, bailar...
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Tip */}
+        <View style={styles.tipCard}>
+          <Ionicons name="leaf" size={18} color={colors.primary} />
+          <Text style={styles.tipText}>
+            No necesitas ser perfecto. Solo intenta un poco mejor que ayer.
+          </Text>
+        </View>
+
+        <View style={styles.bottomSpace} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -405,9 +263,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.lg,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.autocuidado,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
   },
   backButton: {
     marginRight: spacing.md,
@@ -424,77 +282,77 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: fontSize.sm,
     color: colors.textLight,
-  },
-  saveButton: {
-    padding: spacing.xs,
+    marginTop: 2,
   },
   scoreCard: {
+    backgroundColor: colors.white,
     marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-  },
-  scoreHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: spacing.md,
-  },
-  scoreTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
-    color: colors.textDark,
-  },
-  scoreCircle: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  scoreNumber: {
-    fontSize: fontSize.xxl,
-    fontWeight: fontWeight.bold,
-    color: colors.autocuidado,
-  },
-  scoreMax: {
-    fontSize: fontSize.md,
-    color: colors.textLight,
-  },
-  scoreMessage: {
-    fontSize: fontSize.sm,
-    color: colors.textLight,
-    textAlign: 'center',
-    marginTop: spacing.md,
-  },
-  sectionCard: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
+    padding: spacing.lg,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
+    ...shadows.sm,
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
     marginBottom: spacing.sm,
   },
-  sectionTitle: {
+  scoreDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.backgroundDark,
+  },
+  scoreDotFilled: {
+    backgroundColor: colors.primary,
+  },
+  scoreMessage: {
+    fontSize: fontSize.md,
+    color: colors.textLight,
+    fontWeight: fontWeight.medium,
+  },
+  trackerCard: {
+    backgroundColor: colors.white,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    padding: spacing.lg,
+    borderRadius: borderRadius.xl,
+    ...shadows.sm,
+  },
+  trackerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  trackerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: borderRadius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trackerInfo: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  trackerTitle: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.semibold,
     color: colors.textDark,
-    marginLeft: spacing.sm,
-    flex: 1,
   },
-  sectionValue: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-    color: colors.textLight,
-  },
-  sectionDescription: {
+  trackerSubtitle: {
     fontSize: fontSize.sm,
     color: colors.textLight,
-    marginBottom: spacing.md,
+    marginTop: 2,
   },
-  waterContainer: {
+  waterRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: spacing.lg,
   },
   waterGlass: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: borderRadius.md,
     backgroundColor: colors.backgroundDark,
     justifyContent: 'center',
@@ -503,111 +361,75 @@ const styles = StyleSheet.create({
   waterGlassFilled: {
     backgroundColor: colors.priorizacion,
   },
-  sleepContainer: {
+  waterCount: {
+    fontSize: fontSize.sm,
+    color: colors.textLight,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  sleepRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: spacing.lg,
+    gap: spacing.sm,
   },
   sleepButton: {
-    paddingHorizontal: spacing.md,
+    flex: 1,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.md,
     backgroundColor: colors.backgroundDark,
+    alignItems: 'center',
   },
   sleepButtonSelected: {
     backgroundColor: colors.proyectos,
   },
-  sleepButtonText: {
-    fontSize: fontSize.sm,
+  sleepText: {
+    fontSize: fontSize.md,
     color: colors.text,
+    fontWeight: fontWeight.medium,
   },
-  sleepButtonTextSelected: {
+  sleepTextSelected: {
     color: colors.white,
     fontWeight: fontWeight.semibold,
   },
-  exerciseScroll: {
-    marginBottom: spacing.sm,
+  movementCard: {
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
-  exerciseChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.round,
-    marginRight: spacing.sm,
-    backgroundColor: colors.backgroundDark,
+  movementCardActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
-  exerciseChipText: {
+  movementTitleActive: {
+    color: colors.white,
+  },
+  movementSubtitleActive: {
+    color: colors.white,
+    opacity: 0.9,
+  },
+  movementHint: {
     fontSize: fontSize.sm,
-    marginLeft: spacing.xs,
-    color: colors.text,
+    color: colors.textLight,
+    marginTop: spacing.md,
+    fontStyle: 'italic',
   },
-  snacksRow: {
+  tipCard: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-  },
-  addSnackButton: {
-    backgroundColor: colors.orange,
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  snacksList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  snackChip: {
-    backgroundColor: colors.orangeLight + '40',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.round,
-  },
-  snackText: {
-    fontSize: fontSize.sm,
-    color: colors.orange,
-  },
-  meditationContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    backgroundColor: colors.primaryMuted,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
     gap: spacing.sm,
   },
-  meditationButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.backgroundDark,
-  },
-  meditationButtonText: {
+  tipText: {
+    flex: 1,
     fontSize: fontSize.sm,
-    color: colors.text,
+    color: colors.primary,
+    lineHeight: 20,
   },
-  tipsCard: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-    backgroundColor: colors.orangeLight + '30',
-  },
-  tipsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  tipsTitle: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-    color: colors.orange,
-    marginLeft: spacing.xs,
-  },
-  tipsText: {
-    fontSize: fontSize.sm,
-    color: colors.text,
-    lineHeight: 22,
-  },
-  saveButtonContainer: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
+  bottomSpace: {
+    height: spacing.xxl,
   },
 });
