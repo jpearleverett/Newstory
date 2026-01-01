@@ -1,17 +1,9 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, SafeAreaView } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  FadeInDown,
-  FadeInUp,
-} from 'react-native-reanimated';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, SafeAreaView, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows, animation } from '../styles/theme';
 import haptic from '../utils/haptics';
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface SectionItem {
   id: string;
@@ -106,18 +98,30 @@ const SectionCard: React.FC<{
   index: number;
   onPress: () => void;
 }> = ({ section, index, onPress }) => {
-  const scale = useSharedValue(1);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      delay: index * 50,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.95, animation.springBouncy);
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handlePressOut = () => {
-    scale.value = withSpring(1, animation.spring);
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handlePress = () => {
@@ -127,10 +131,21 @@ const SectionCard: React.FC<{
 
   return (
     <Animated.View
-      entering={FadeInDown.delay(100 + index * 50).springify()}
+      style={{
+        opacity: fadeAnim,
+        transform: [
+          { scale: scaleAnim },
+          {
+            translateY: fadeAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [20, 0],
+            }),
+          },
+        ],
+      }}
     >
-      <AnimatedPressable
-        style={[styles.sectionCard, animatedStyle]}
+      <Pressable
+        style={styles.sectionCard}
         onPress={handlePress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
@@ -145,7 +160,7 @@ const SectionCard: React.FC<{
         <View style={[styles.chevronContainer, { backgroundColor: section.color + '12' }]}>
           <Ionicons name="chevron-forward" size={18} color={section.color} />
         </View>
-      </AnimatedPressable>
+      </Pressable>
     </Animated.View>
   );
 };
@@ -158,18 +173,43 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     month: 'long',
   });
 
-  const heroScale = useSharedValue(1);
+  const heroScaleAnim = useRef(new Animated.Value(1)).current;
+  const headerFadeAnim = useRef(new Animated.Value(0)).current;
+  const heroFadeAnim = useRef(new Animated.Value(0)).current;
+  const quoteFadeAnim = useRef(new Animated.Value(0)).current;
 
-  const heroAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: heroScale.value }],
-  }));
+  useEffect(() => {
+    Animated.stagger(100, [
+      Animated.timing(headerFadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(heroFadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(quoteFadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const handleHeroPressIn = () => {
-    heroScale.value = withSpring(0.98, animation.spring);
+    Animated.spring(heroScaleAnim, {
+      toValue: 0.98,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handleHeroPressOut = () => {
-    heroScale.value = withSpring(1, animation.spring);
+    Animated.spring(heroScaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handleHeroPress = () => {
@@ -186,8 +226,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       >
         {/* Header */}
         <Animated.View
-          style={styles.header}
-          entering={FadeInUp.delay(50).springify()}
+          style={[
+            styles.header,
+            {
+              opacity: headerFadeAnim,
+              transform: [
+                {
+                  translateY: headerFadeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-20, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
         >
           <View style={styles.logoContainer}>
             <Text style={styles.logoTotally}>Totally</Text>
@@ -197,12 +249,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </Animated.View>
 
         {/* Hero Card - Today's Plan */}
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <AnimatedPressable
+        <Animated.View
+          style={{
+            opacity: heroFadeAnim,
+            transform: [
+              { scale: heroScaleAnim },
+              {
+                translateY: heroFadeAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [30, 0],
+                }),
+              },
+            ],
+          }}
+        >
+          <Pressable
             onPress={handleHeroPress}
             onPressIn={handleHeroPressIn}
             onPressOut={handleHeroPressOut}
-            style={heroAnimatedStyle}
           >
             <LinearGradient
               colors={colors.gradients.hero}
@@ -233,13 +297,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               <View style={styles.heroDecor1} />
               <View style={styles.heroDecor2} />
             </LinearGradient>
-          </AnimatedPressable>
+          </Pressable>
         </Animated.View>
 
         {/* Motivational Quote */}
         <Animated.View
-          style={styles.quoteContainer}
-          entering={FadeInDown.delay(150).springify()}
+          style={[
+            styles.quoteContainer,
+            {
+              opacity: quoteFadeAnim,
+              transform: [
+                {
+                  translateY: quoteFadeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [20, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
         >
           <View style={styles.quoteIcon}>
             <Ionicons name="sparkles" size={18} color={colors.accent} />
@@ -263,14 +339,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </View>
 
         {/* Footer */}
-        <Animated.View
-          style={styles.footer}
-          entering={FadeInUp.delay(600).springify()}
-        >
+        <View style={styles.footer}>
           <View style={styles.footerDivider} />
           <Text style={styles.footerText}>TotallyTDAH.com</Text>
           <Text style={styles.footerSubtext}>Reduciendo Estigmas LLC</Text>
-        </Animated.View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

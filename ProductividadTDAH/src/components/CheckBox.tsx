@@ -1,13 +1,5 @@
-import React, { useEffect } from 'react';
-import { Text, StyleSheet, Pressable } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withSequence,
-  withTiming,
-  interpolateColor,
-} from 'react-native-reanimated';
+import React, { useEffect, useRef } from 'react';
+import { Text, StyleSheet, Pressable, View, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, fontSize, animation } from '../styles/theme';
 import haptic from '../utils/haptics';
@@ -29,24 +21,31 @@ export const CheckBox: React.FC<CheckBoxProps> = ({
   size = 'medium',
   strikethrough = true,
 }) => {
-  const scale = useSharedValue(1);
-  const checkScale = useSharedValue(checked ? 1 : 0);
-  const backgroundProgress = useSharedValue(checked ? 1 : 0);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const checkAnim = useRef(new Animated.Value(checked ? 1 : 0)).current;
 
   const boxSize = size === 'small' ? 20 : size === 'large' ? 32 : 24;
   const iconSize = size === 'small' ? 14 : size === 'large' ? 24 : 18;
 
   useEffect(() => {
-    checkScale.value = withSpring(checked ? 1 : 0, animation.springBouncy);
-    backgroundProgress.value = withTiming(checked ? 1 : 0, { duration: animation.normal });
+    Animated.spring(checkAnim, {
+      toValue: checked ? 1 : 0,
+      useNativeDriver: true,
+    }).start();
   }, [checked]);
 
   const handlePress = () => {
     // Bounce animation
-    scale.value = withSequence(
-      withSpring(0.85, { damping: 10, stiffness: 400 }),
-      withSpring(1, animation.springBouncy)
-    );
+    Animated.sequence([
+      Animated.spring(scaleAnim, {
+        toValue: 0.85,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+      }),
+    ]).start();
 
     // Haptic feedback
     if (!checked) {
@@ -58,29 +57,6 @@ export const CheckBox: React.FC<CheckBoxProps> = ({
     onToggle();
   };
 
-  const boxAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    backgroundColor: interpolateColor(
-      backgroundProgress.value,
-      [0, 1],
-      ['transparent', color]
-    ),
-    borderColor: interpolateColor(
-      backgroundProgress.value,
-      [0, 1],
-      [colors.textLight, color]
-    ),
-  }));
-
-  const checkAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: checkScale.value }],
-    opacity: checkScale.value,
-  }));
-
-  const labelAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(checked ? 0.6 : 1, { duration: animation.normal }),
-  }));
-
   return (
     <Pressable style={styles.container} onPress={handlePress}>
       <Animated.View
@@ -89,24 +65,30 @@ export const CheckBox: React.FC<CheckBoxProps> = ({
           {
             width: boxSize,
             height: boxSize,
+            backgroundColor: checked ? color : 'transparent',
+            borderColor: checked ? color : colors.textLight,
+            transform: [{ scale: scaleAnim }],
           },
-          boxAnimatedStyle,
         ]}
       >
-        <Animated.View style={checkAnimatedStyle}>
+        <Animated.View
+          style={{
+            transform: [{ scale: checkAnim }],
+            opacity: checkAnim,
+          }}
+        >
           <Ionicons name="checkmark" size={iconSize} color={colors.white} />
         </Animated.View>
       </Animated.View>
       {label && (
-        <Animated.Text
+        <Text
           style={[
             styles.label,
             checked && strikethrough && styles.checkedLabel,
-            labelAnimatedStyle,
           ]}
         >
           {label}
-        </Animated.Text>
+        </Text>
       )}
     </Pressable>
   );
