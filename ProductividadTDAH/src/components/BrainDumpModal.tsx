@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
 import { Input } from './Input';
 import { Button } from './Button';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface BrainDumpModalProps {
   visible: boolean;
@@ -12,6 +13,7 @@ interface BrainDumpModalProps {
 }
 
 export const BrainDumpModal: React.FC<BrainDumpModalProps> = ({ visible, onClose, onSubmit }) => {
+  const { t } = useLanguage();
   const [text, setText] = useState('');
 
   const handleSubmit = () => {
@@ -31,8 +33,8 @@ export const BrainDumpModal: React.FC<BrainDumpModalProps> = ({ visible, onClose
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <View>
-              <Text style={styles.modalTitle}>Brain Dump 🧠</Text>
-              <Text style={styles.modalSubtitle}>Libera tu mente. Escribe todo.</Text>
+              <Text style={styles.modalTitle}>{t('brain_dump_modal_title')}</Text>
+              <Text style={styles.modalSubtitle}>{t('brain_dump_modal_subtitle')}</Text>
             </View>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color={colors.text} />
@@ -40,11 +42,11 @@ export const BrainDumpModal: React.FC<BrainDumpModalProps> = ({ visible, onClose
           </View>
 
           <Text style={styles.modalDescription}>
-            Escribe una idea por línea. No juzgues, solo captura.
+            {t('brain_dump_modal_desc')}
           </Text>
 
           <Input
-            placeholder="Comprar leche&#10;Llamar al médico&#10;Idea para el proyecto..."
+            placeholder={t('brain_dump_placeholder')}
             value={text}
             onChangeText={setText}
             multiline
@@ -54,7 +56,7 @@ export const BrainDumpModal: React.FC<BrainDumpModalProps> = ({ visible, onClose
           />
 
           <Button
-            title="Guardar en Inbox"
+            title={t('save_inbox')}
             onPress={handleSubmit}
             variant="primary"
             color={colors.pink}

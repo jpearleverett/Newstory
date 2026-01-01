@@ -5,50 +5,53 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
 import { Card, Button, Input, CheckBox, BrainDumpModal } from '../components';
 import { useData, EisenhowerTask } from '../context/DataContext';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface PriorizacionScreenProps {
   navigation: any;
 }
 
-const quadrants = [
-  {
-    id: 'urgent-important',
-    title: 'Hacer',
-    subtitle: 'Urgente e Importante',
-    description: 'Tareas críticas que necesitan atención inmediata',
-    color: colors.error,
-    icon: 'flash-outline' as const,
-  },
-  {
-    id: 'not-urgent-important',
-    title: 'Programar',
-    subtitle: 'Importante pero No Urgente',
-    description: 'Metas a largo plazo y desarrollo personal',
-    color: colors.olive,
-    icon: 'calendar-outline' as const,
-  },
-  {
-    id: 'urgent-not-important',
-    title: 'Delegar',
-    subtitle: 'Urgente pero No Importante',
-    description: 'Interrupciones y tareas que otros pueden hacer',
-    color: colors.warning,
-    icon: 'people-outline' as const,
-  },
-  {
-    id: 'not-urgent-not-important',
-    title: 'Eliminar',
-    subtitle: 'Ni Urgente Ni Importante',
-    description: 'Distracciones y pérdidas de tiempo',
-    color: colors.textLight,
-    icon: 'trash-outline' as const,
-  },
-];
-
 export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigation }) => {
   const { data, addEisenhowerTask, updateEisenhowerTask, deleteEisenhowerTask, addBrainDump } = useData();
+  const { t } = useLanguage();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBrainDumpModal, setShowBrainDumpModal] = useState(false);
+  
+  const quadrants = [
+    {
+      id: 'urgent-important',
+      title: t('quadrant_do'),
+      subtitle: t('quadrant_do_subtitle'),
+      description: t('quadrant_do_desc'),
+      color: colors.error,
+      icon: 'flash-outline' as const,
+    },
+    {
+      id: 'not-urgent-important',
+      title: t('quadrant_schedule'),
+      subtitle: t('quadrant_schedule_subtitle'),
+      description: t('quadrant_schedule_desc'),
+      color: colors.olive,
+      icon: 'calendar-outline' as const,
+    },
+    {
+      id: 'urgent-not-important',
+      title: t('quadrant_delegate'),
+      subtitle: t('quadrant_delegate_subtitle'),
+      description: t('quadrant_delegate_desc'),
+      color: colors.warning,
+      icon: 'people-outline' as const,
+    },
+    {
+      id: 'not-urgent-not-important',
+      title: t('quadrant_delete'),
+      subtitle: t('quadrant_delete_subtitle'),
+      description: t('quadrant_delete_desc'),
+      color: colors.textLight,
+      icon: 'trash-outline' as const,
+    },
+  ];
+
   const [selectedQuadrant, setSelectedQuadrant] = useState(quadrants[0]);
   const [newTaskText, setNewTaskText] = useState('');
 
@@ -149,7 +152,7 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
         </View>
 
         {tasks.length === 0 ? (
-          <Text style={styles.emptyQuadrant}>Toca para agregar tareas</Text>
+          <Text style={styles.emptyQuadrant}>{t('empty_quadrant')}</Text>
         ) : (
           <View style={styles.tasksList}>
             {tasks.slice(0, 3).map((task) => (
@@ -180,7 +183,9 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
               </View>
             ))}
             {tasks.length > 3 && (
-              <Text style={styles.moreTasksText}>+{tasks.length - 3} más</Text>
+              <Text style={styles.moreTasksText}>
+                {t('more_tasks', { count: tasks.length - 3 })}
+              </Text>
             )}
           </View>
         )}
@@ -197,8 +202,8 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.title}>Priorización</Text>
-            <Text style={styles.subtitle}>Matriz Eisenhower</Text>
+            <Text style={styles.title}>{t('prioritization_title')}</Text>
+            <Text style={styles.subtitle}>{t('prioritization_subtitle')}</Text>
           </View>
         </View>
 
@@ -211,8 +216,8 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
                 <Ionicons name="magic-wand" size={24} color={colors.white} />
             </View>
             <View style={styles.wizardTextContainer}>
-                <Text style={styles.wizardTitle}>¿No sabes por dónde empezar?</Text>
-                <Text style={styles.wizardSubtitle}>Usa el asistente mágico de priorización</Text>
+                <Text style={styles.wizardTitle}>{t('wizard_button_title')}</Text>
+                <Text style={styles.wizardSubtitle}>{t('wizard_button_subtitle')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={24} color={colors.primary} />
         </TouchableOpacity>
@@ -224,8 +229,8 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
         >
           <Ionicons name="cloud-outline" size={24} color={colors.white} />
           <View style={styles.brainDumpContent}>
-            <Text style={styles.brainDumpTitle}>Brain Dump</Text>
-            <Text style={styles.brainDumpSubtitle}>Vacía tu mente aquí</Text>
+            <Text style={styles.brainDumpTitle}>{t('brain_dump')}</Text>
+            <Text style={styles.brainDumpSubtitle}>{t('brain_dump_subtitle')}</Text>
           </View>
           <Ionicons name="add-circle" size={28} color={colors.white} />
         </TouchableOpacity>
@@ -244,11 +249,14 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
 
         {/* Explanation Card */}
         <Card style={styles.explanationCard}>
+            <View style={styles.explanationHeader}>
+              <Ionicons name="information-circle" size={24} color={colors.priorizacion} />
+              <Text style={styles.explanationTitle}>{t('how_to_use')}</Text>
+            </View>
             <Text style={styles.explanationText}>
-            <Text style={{ fontWeight: 'bold', color: colors.error }}>Hacer:</Text> Hazlo ahora{'\n'}
-            <Text style={{ fontWeight: 'bold', color: colors.olive }}>Programar:</Text> Agenda un tiempo{'\n'}
-            <Text style={{ fontWeight: 'bold', color: colors.warning }}>Delegar:</Text> ¿Quién puede ayudar?{'\n'}
-            <Text style={{ fontWeight: 'bold', color: colors.textLight }}>Eliminar:</Text> ¿Realmente necesitas hacerlo?
+              {t('how_to_use_desc').split('\n\n').map((part, i) => (
+                <Text key={i}>{part}{'\n'}</Text>
+              ))}
             </Text>
         </Card>
       </ScrollView>
@@ -258,7 +266,7 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
           <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
                 <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>Asistente Mágico ✨</Text>
+                    <Text style={styles.modalTitle}>{t('wizard_modal_title')}</Text>
                     <TouchableOpacity onPress={() => setShowWizard(false)}>
                         <Ionicons name="close" size={24} color={colors.text} />
                     </TouchableOpacity>
@@ -266,15 +274,15 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
 
                 {wizardStep === 0 && (
                     <View>
-                        <Text style={styles.wizardQuestion}>¿Qué tarea tienes en mente?</Text>
+                        <Text style={styles.wizardQuestion}>{t('wizard_q1')}</Text>
                         <Input
-                            placeholder="Ej: Enviar reporte mensual"
+                            placeholder={t('wizard_q1_placeholder')}
                             value={wizardTask}
                             onChangeText={setWizardTask}
                             autoFocus
                         />
                         <Button
-                            title="Siguiente"
+                            title={t('wizard_next')}
                             onPress={handleWizardNext}
                             disabled={!wizardTask.trim()}
                             style={{ marginTop: spacing.lg }}
@@ -284,17 +292,17 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
 
                 {wizardStep === 1 && (
                     <View>
-                        <Text style={styles.wizardQuestion}>¿Tiene una fecha límite cercana (hoy/mañana)?</Text>
+                        <Text style={styles.wizardQuestion}>{t('wizard_q2')}</Text>
                         <View style={styles.wizardActions}>
                             <Button 
-                                title="Sí, es urgente" 
+                                title={t('wizard_yes_urgent')}
                                 onPress={() => handleWizardUrgency(true)} 
                                 variant="outline" 
                                 style={{ flex: 1 }}
                             />
                             <View style={{ width: spacing.md }} />
                             <Button 
-                                title="No, puede esperar" 
+                                title={t('wizard_no_urgent')}
                                 onPress={() => handleWizardUrgency(false)} 
                                 variant="outline" 
                                 style={{ flex: 1 }}
@@ -305,18 +313,18 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
 
                 {wizardStep === 2 && (
                     <View>
-                        <Text style={styles.wizardQuestion}>¿Tiene consecuencias graves si no se hace?</Text>
-                        <Text style={styles.wizardSubQuestion}>¿Te acerca a tus metas a largo plazo?</Text>
+                        <Text style={styles.wizardQuestion}>{t('wizard_q3')}</Text>
+                        <Text style={styles.wizardSubQuestion}>{t('wizard_q3_sub')}</Text>
                         <View style={styles.wizardActions}>
                             <Button 
-                                title="Sí, es importante" 
+                                title={t('wizard_yes_important')}
                                 onPress={() => handleWizardImportance(true)} 
                                 variant="primary" 
                                 style={{ flex: 1 }}
                             />
                             <View style={{ width: spacing.md }} />
                             <Button 
-                                title="No tanto" 
+                                title={t('wizard_no_important')}
                                 onPress={() => handleWizardImportance(false)} 
                                 variant="secondary" 
                                 style={{ flex: 1 }}
@@ -365,14 +373,14 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
             </View>
 
             <Input
-              label="Nueva tarea"
-              placeholder="Describe la tarea..."
+              label={t('add_task_modal_title')}
+              placeholder={t('add_task_modal_placeholder')}
               value={newTaskText}
               onChangeText={setNewTaskText}
             />
 
             {/* Tasks in this quadrant */}
-            <Text style={styles.tasksListTitle}>Tareas en este cuadrante:</Text>
+            <Text style={styles.tasksListTitle}>{t('tasks_in_quadrant')}</Text>
             <ScrollView style={styles.modalTasksList}>
               {getTasksForQuadrant(selectedQuadrant.id).map((task) => (
                 <CheckBox
@@ -384,12 +392,12 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
                 />
               ))}
               {getTasksForQuadrant(selectedQuadrant.id).length === 0 && (
-                <Text style={styles.noTasksText}>No hay tareas en este cuadrante</Text>
+                <Text style={styles.noTasksText}>{t('no_tasks_in_quadrant')}</Text>
               )}
             </ScrollView>
 
             <Button
-              title="Agregar Tarea"
+              title={t('add_task_button')}
               onPress={handleAddTask}
               variant="primary"
               color={selectedQuadrant.color}

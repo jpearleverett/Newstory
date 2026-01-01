@@ -139,7 +139,7 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ visible, onClo
         {/* Motivational Tip */}
         <View style={styles.footer}>
           <Text style={styles.tipText}>
-            {isActive ? "Respira. Una cosa a la vez." : "Listo para empezar?"}
+            {isActive ? t('focus_breath') : t('focus_ready')}
           </Text>
         </View>
       </View>
