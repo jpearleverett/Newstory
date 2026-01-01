@@ -109,7 +109,7 @@ export const MasScreen: React.FC<MasScreenProps> = ({ navigation }) => {
           </View>
           <View style={styles.menuContent}>
             <Text style={styles.menuTitle}>{t('language')}</Text>
-            <Text style={styles.menuDescription}>{language === 'es' ? 'Español' : 'English'}</Text>
+            <Text style={styles.menuDescription}>{language === 'es' ? t('language_spanish') : t('language_english')}</Text>
           </View>
           <View style={styles.toggleButton}>
              <Text style={styles.toggleText}>{language.toUpperCase()}</Text>

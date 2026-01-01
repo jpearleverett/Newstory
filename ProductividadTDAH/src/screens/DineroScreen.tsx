@@ -3,31 +3,32 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, enUS } from 'date-fns/locale';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
 import { Card, Button, Input, CheckBox } from '../components';
 import { useData, Expense } from '../context/DataContext';
+import { useLanguage } from '../i18n/LanguageContext';
 
-const expenseCategories = [
-  { id: 'vivienda', name: 'Vivienda', icon: 'home-outline', color: colors.casa },
-  { id: 'alimentacion', name: 'Alimentación', icon: 'restaurant-outline', color: colors.olive },
-  { id: 'transporte', name: 'Transporte', icon: 'car-outline', color: colors.priorizacion },
-  { id: 'salud', name: 'Salud', icon: 'medkit-outline', color: colors.error },
-  { id: 'entretenimiento', name: 'Entretenimiento', icon: 'game-controller-outline', color: colors.proyectos },
-  { id: 'ropa', name: 'Ropa', icon: 'shirt-outline', color: colors.pink },
-  { id: 'educacion', name: 'Educación', icon: 'book-outline', color: colors.orange },
-  { id: 'otro', name: 'Otro', icon: 'ellipsis-horizontal-outline', color: colors.textLight },
-];
+const expenseCategoryIds = [
+  { id: 'vivienda', nameKey: 'cat_housing', icon: 'home-outline', color: colors.casa },
+  { id: 'alimentacion', nameKey: 'cat_food', icon: 'restaurant-outline', color: colors.olive },
+  { id: 'transporte', nameKey: 'cat_transport', icon: 'car-outline', color: colors.priorizacion },
+  { id: 'salud', nameKey: 'cat_health', icon: 'medkit-outline', color: colors.error },
+  { id: 'entretenimiento', nameKey: 'cat_entertainment', icon: 'game-controller-outline', color: colors.proyectos },
+  { id: 'ropa', nameKey: 'cat_clothing', icon: 'shirt-outline', color: colors.pink },
+  { id: 'educacion', nameKey: 'cat_education', icon: 'book-outline', color: colors.orange },
+  { id: 'otro', nameKey: 'cat_other', icon: 'ellipsis-horizontal-outline', color: colors.textLight },
+] as const;
 
-const impulseQuestions = [
-  '¿Realmente lo necesito o solo lo quiero?',
-  '¿Puedo esperar 24-48 horas antes de comprarlo?',
-  '¿Tengo algo similar en casa?',
-  '¿Cómo me sentiré después de comprarlo?',
-  '¿Afectará mis metas financieras?',
-  '¿Lo compraría si tuviera que pagar en efectivo?',
-  '¿Seguiré queriéndolo en una semana?',
-];
+const impulseQuestionKeys = [
+  'impulse_q1',
+  'impulse_q2',
+  'impulse_q3',
+  'impulse_q4',
+  'impulse_q5',
+  'impulse_q6',
+  'impulse_q7',
+] as const;
 
 interface DineroScreenProps {
   navigation: any;
@@ -35,13 +36,24 @@ interface DineroScreenProps {
 
 export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
   const { data, addExpense, deleteExpense } = useData();
+  const { t, language } = useLanguage();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImpulseModal, setShowImpulseModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(expenseCategories[0]);
+  const [selectedCategory, setSelectedCategory] = useState(expenseCategoryIds[0]);
   const [expenseDescription, setExpenseDescription] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [isNeed, setIsNeed] = useState(true);
-  const [impulseAnswers, setImpulseAnswers] = useState<boolean[]>(new Array(impulseQuestions.length).fill(false));
+  const [impulseAnswers, setImpulseAnswers] = useState<boolean[]>(new Array(impulseQuestionKeys.length).fill(false));
+  const dateLocale = language === 'es' ? es : enUS;
+
+  // Helper to get category with translated name
+  const getCategoryWithTranslation = (cat: typeof expenseCategoryIds[number]) => ({
+    ...cat,
+    name: t(cat.nameKey as any),
+  });
+
+  // Get all categories with translated names
+  const expenseCategories = expenseCategoryIds.map(getCategoryWithTranslation);
 
   const currentMonth = format(new Date(), 'yyyy-MM');
   const monthlyExpenses = data.expenses.filter(e => e.date.startsWith(currentMonth));
@@ -69,14 +81,15 @@ export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
   };
 
   const getCategoryInfo = (categoryId: string) => {
-    return expenseCategories.find(c => c.id === categoryId) || expenseCategories[7];
+    const cat = expenseCategoryIds.find(c => c.id === categoryId) || expenseCategoryIds[7];
+    return getCategoryWithTranslation(cat);
   };
 
   const getImpulseScore = () => {
     const yesCount = impulseAnswers.filter(a => a).length;
-    if (yesCount <= 2) return { text: 'Probablemente NO deberías comprarlo', color: colors.error };
-    if (yesCount <= 4) return { text: 'Piénsalo un poco más', color: colors.warning };
-    return { text: 'Parece una compra razonable', color: colors.olive };
+    if (yesCount <= 2) return { text: t('impulse_no_buy'), color: colors.error };
+    if (yesCount <= 4) return { text: t('impulse_think'), color: colors.warning };
+    return { text: t('impulse_ok'), color: colors.olive };
   };
 
   const formatCurrency = (amount: number) => {
@@ -95,8 +108,8 @@ export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.title}>TDAH y el Dinero</Text>
-            <Text style={styles.subtitle}>Gestión financiera consciente</Text>
+            <Text style={styles.title}>{t('dinero_title')}</Text>
+            <Text style={styles.subtitle}>{t('dinero_subtitle')}</Text>
           </View>
           <TouchableOpacity onPress={() => setShowAddModal(true)} style={styles.addButton}>
             <Ionicons name="add-circle" size={32} color={colors.dinero} />
@@ -106,25 +119,25 @@ export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
         {/* Monthly Summary */}
         <Card variant="elevated" style={styles.summaryCard}>
           <Text style={styles.summaryMonth}>
-            {format(new Date(), 'MMMM yyyy', { locale: es })}
+            {format(new Date(), 'MMMM yyyy', { locale: dateLocale })}
           </Text>
           <Text style={styles.totalSpent}>{formatCurrency(totalSpent)}</Text>
-          <Text style={styles.totalLabel}>Total gastado</Text>
+          <Text style={styles.totalLabel}>{t('dinero_total_spent')}</Text>
 
           <View style={styles.spendingBreakdown}>
             <View style={styles.spendingItem}>
               <View style={[styles.spendingDot, { backgroundColor: colors.olive }]} />
-              <Text style={styles.spendingLabel}>Necesidades</Text>
+              <Text style={styles.spendingLabel}>{t('dinero_needs')}</Text>
               <Text style={styles.spendingAmount}>{formatCurrency(needsSpent)}</Text>
             </View>
             <View style={styles.spendingItem}>
               <View style={[styles.spendingDot, { backgroundColor: colors.pink }]} />
-              <Text style={styles.spendingLabel}>Deseos</Text>
+              <Text style={styles.spendingLabel}>{t('dinero_wants')}</Text>
               <Text style={styles.spendingAmount}>{formatCurrency(wantsSpent)}</Text>
             </View>
             <View style={styles.spendingItem}>
               <View style={[styles.spendingDot, { backgroundColor: colors.warning }]} />
-              <Text style={styles.spendingLabel}>Impulsos</Text>
+              <Text style={styles.spendingLabel}>{t('dinero_impulses')}</Text>
               <Text style={styles.spendingAmount}>{formatCurrency(impulseSpent)}</Text>
             </View>
           </View>
@@ -134,14 +147,14 @@ export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
         <TouchableOpacity
           style={styles.impulseButton}
           onPress={() => {
-            setImpulseAnswers(new Array(impulseQuestions.length).fill(false));
+            setImpulseAnswers(new Array(impulseQuestionKeys.length).fill(false));
             setShowImpulseModal(true);
           }}
         >
           <Ionicons name="warning-outline" size={24} color={colors.white} />
           <View style={styles.impulseButtonContent}>
-            <Text style={styles.impulseButtonTitle}>¿Compra Impulsiva?</Text>
-            <Text style={styles.impulseButtonSubtitle}>Responde antes de comprar</Text>
+            <Text style={styles.impulseButtonTitle}>{t('dinero_impulse_check')}</Text>
+            <Text style={styles.impulseButtonSubtitle}>{t('dinero_impulse_subtitle')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={24} color={colors.white} />
         </TouchableOpacity>
@@ -150,38 +163,38 @@ export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
         <Card style={styles.ruleCard}>
           <View style={styles.ruleHeader}>
             <Ionicons name="pie-chart-outline" size={24} color={colors.dinero} />
-            <Text style={styles.ruleTitle}>Regla 50/30/20</Text>
+            <Text style={styles.ruleTitle}>{t('dinero_rule_title')}</Text>
           </View>
           <Text style={styles.ruleDescription}>
-            Una guía simple para distribuir tus ingresos:
+            {t('dinero_rule_desc')}
           </Text>
           <View style={styles.ruleItems}>
             <View style={styles.ruleItem}>
               <Text style={[styles.rulePercent, { color: colors.olive }]}>50%</Text>
-              <Text style={styles.ruleLabel}>Necesidades</Text>
-              <Text style={styles.ruleExample}>Vivienda, comida, transporte</Text>
+              <Text style={styles.ruleLabel}>{t('dinero_needs')}</Text>
+              <Text style={styles.ruleExample}>{t('dinero_needs_examples')}</Text>
             </View>
             <View style={styles.ruleItem}>
               <Text style={[styles.rulePercent, { color: colors.pink }]}>30%</Text>
-              <Text style={styles.ruleLabel}>Deseos</Text>
-              <Text style={styles.ruleExample}>Entretenimiento, hobbies</Text>
+              <Text style={styles.ruleLabel}>{t('dinero_wants')}</Text>
+              <Text style={styles.ruleExample}>{t('dinero_wants_examples')}</Text>
             </View>
             <View style={styles.ruleItem}>
               <Text style={[styles.rulePercent, { color: colors.dinero }]}>20%</Text>
-              <Text style={styles.ruleLabel}>Ahorro</Text>
-              <Text style={styles.ruleExample}>Emergencias, metas</Text>
+              <Text style={styles.ruleLabel}>{t('dinero_savings')}</Text>
+              <Text style={styles.ruleExample}>{t('dinero_savings_examples')}</Text>
             </View>
           </View>
         </Card>
 
         {/* Recent Expenses */}
-        <Text style={styles.sectionTitle}>Gastos Recientes</Text>
+        <Text style={styles.sectionTitle}>{t('dinero_recent')}</Text>
         {monthlyExpenses.length === 0 ? (
           <Card style={styles.emptyCard}>
             <Ionicons name="wallet-outline" size={48} color={colors.textLight} />
-            <Text style={styles.emptyTitle}>Sin gastos registrados</Text>
+            <Text style={styles.emptyTitle}>{t('dinero_no_expenses')}</Text>
             <Text style={styles.emptyText}>
-              Registra tus gastos para tener un mejor control de tus finanzas.
+              {t('dinero_no_expenses_desc')}
             </Text>
           </Card>
         ) : (
@@ -200,12 +213,12 @@ export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
                         <Text style={styles.expenseCategory}>{category.name}</Text>
                         {!expense.isNeed && (
                           <View style={styles.wantBadge}>
-                            <Text style={styles.wantBadgeText}>Deseo</Text>
+                            <Text style={styles.wantBadgeText}>{t('dinero_want_badge')}</Text>
                           </View>
                         )}
                         {expense.isImpulse && (
                           <View style={styles.impulseBadge}>
-                            <Text style={styles.impulseBadgeText}>Impulso</Text>
+                            <Text style={styles.impulseBadgeText}>{t('dinero_impulse_badge')}</Text>
                           </View>
                         )}
                       </View>
@@ -224,14 +237,10 @@ export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
         <Card style={styles.tipsCard}>
           <View style={styles.tipsHeader}>
             <Ionicons name="bulb" size={20} color={colors.orange} />
-            <Text style={styles.tipsTitle}>Tips para TDAH y Finanzas</Text>
+            <Text style={styles.tipsTitle}>{t('dinero_adhd_tips')}</Text>
           </View>
           <Text style={styles.tipsText}>
-            • Automatiza pagos y ahorros{'\n'}
-            • Usa la regla de las 24-48 horas para compras grandes{'\n'}
-            • Mantén un "fondo de impulsos" pequeño{'\n'}
-            • Revisa tus gastos semanalmente{'\n'}
-            • Celebra cuando evitas una compra impulsiva
+            {t('dinero_adhd_tips_content')}
           </Text>
         </Card>
       </ScrollView>
@@ -241,16 +250,16 @@ export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Nuevo Gasto</Text>
+              <Text style={styles.modalTitle}>{t('dinero_new_expense')}</Text>
               <TouchableOpacity onPress={() => setShowAddModal(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>Categoría</Text>
+              <Text style={styles.inputLabel}>{t('dinero_category')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
-                {expenseCategories.map((cat) => (
+                {expenseCategoryIds.map((cat) => (
                   <TouchableOpacity
                     key={cat.id}
                     style={[
@@ -268,28 +277,28 @@ export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
                       styles.categoryChipText,
                       selectedCategory.id === cat.id && { color: colors.white },
                     ]}>
-                      {cat.name}
+                      {t(cat.nameKey as any)}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
 
               <Input
-                label="Descripción"
-                placeholder="¿En qué gastaste?"
+                label={t('dinero_description')}
+                placeholder={t('dinero_description_placeholder')}
                 value={expenseDescription}
                 onChangeText={setExpenseDescription}
               />
 
               <Input
-                label="Monto"
+                label={t('dinero_amount')}
                 placeholder="0.00"
                 value={expenseAmount}
                 onChangeText={setExpenseAmount}
                 keyboardType="decimal-pad"
               />
 
-              <Text style={styles.inputLabel}>Tipo de gasto</Text>
+              <Text style={styles.inputLabel}>{t('dinero_expense_type')}</Text>
               <View style={styles.typeOptions}>
                 <TouchableOpacity
                   style={[styles.typeOption, isNeed && { backgroundColor: colors.olive }]}
@@ -301,7 +310,7 @@ export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
                     color={isNeed ? colors.white : colors.olive}
                   />
                   <Text style={[styles.typeOptionText, isNeed && { color: colors.white }]}>
-                    Necesidad
+                    {t('dinero_need')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -314,13 +323,13 @@ export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
                     color={!isNeed ? colors.white : colors.pink}
                   />
                   <Text style={[styles.typeOptionText, !isNeed && { color: colors.white }]}>
-                    Deseo
+                    {t('dinero_want')}
                   </Text>
                 </TouchableOpacity>
               </View>
 
               <Button
-                title="Registrar Gasto"
+                title={t('dinero_register')}
                 onPress={handleAddExpense}
                 variant="primary"
                 color={colors.dinero}
@@ -337,8 +346,8 @@ export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Checklist Anti-Impulso</Text>
-                <Text style={styles.modalSubtitle}>Responde honestamente</Text>
+                <Text style={styles.modalTitle}>{t('dinero_impulse_title')}</Text>
+                <Text style={styles.modalSubtitle}>{t('dinero_impulse_honest')}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowImpulseModal(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
@@ -346,7 +355,7 @@ export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
             </View>
 
             <ScrollView style={styles.impulseQuestions}>
-              {impulseQuestions.map((question, index) => (
+              {impulseQuestionKeys.map((questionKey, index) => (
                 <TouchableOpacity
                   key={index}
                   style={styles.impulseQuestion}
@@ -364,7 +373,7 @@ export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
                       <Ionicons name="checkmark" size={16} color={colors.white} />
                     )}
                   </View>
-                  <Text style={styles.impulseQuestionText}>{question}</Text>
+                  <Text style={styles.impulseQuestionText}>{t(questionKey as any)}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -376,7 +385,7 @@ export const DineroScreen: React.FC<DineroScreenProps> = ({ navigation }) => {
             </View>
 
             <Button
-              title="Entendido"
+              title={t('dinero_understood')}
               onPress={() => setShowImpulseModal(false)}
               variant="primary"
               color={colors.dinero}

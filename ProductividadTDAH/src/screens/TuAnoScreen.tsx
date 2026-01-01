@@ -6,6 +6,7 @@ import { Calendar } from 'react-native-calendars';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
 import { Card, Button, Input } from '../components';
 import { useData } from '../context/DataContext';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface TuAnoScreenProps {
   navigation: any;
@@ -13,6 +14,7 @@ interface TuAnoScreenProps {
 
 export const TuAnoScreen: React.FC<TuAnoScreenProps> = ({ navigation }) => {
   const { data, setYearlyIntention } = useData();
+  const { t } = useLanguage();
   const currentYear = new Date().getFullYear();
 
   const [selectedYear, setSelectedYear] = useState(currentYear);
@@ -65,8 +67,8 @@ export const TuAnoScreen: React.FC<TuAnoScreenProps> = ({ navigation }) => {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View>
-            <Text style={styles.title}>Tu Año</Text>
-            <Text style={styles.subtitle}>Planifica y celebra tu año</Text>
+            <Text style={styles.title}>{t('tuano_title')}</Text>
+            <Text style={styles.subtitle}>{t('tuano_subtitle')}</Text>
           </View>
         </View>
 
@@ -83,7 +85,7 @@ export const TuAnoScreen: React.FC<TuAnoScreenProps> = ({ navigation }) => {
 
         {/* Calendar */}
         <Card variant="elevated" style={styles.calendarCard}>
-          <Text style={styles.sectionTitle}>Calendario</Text>
+          <Text style={styles.sectionTitle}>{t('tuano_calendar')}</Text>
           <Calendar
             current={`${selectedYear}-01-01`}
             markedDates={{
@@ -110,16 +112,16 @@ export const TuAnoScreen: React.FC<TuAnoScreenProps> = ({ navigation }) => {
         <Card variant="elevated" style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Ionicons name="sparkles" size={24} color={colors.pink} />
-            <Text style={styles.sectionTitle}>Mi Palabra del Año</Text>
+            <Text style={styles.sectionTitle}>{t('tuano_word_title')}</Text>
           </View>
           <Text style={styles.sectionDescription}>
-            Elige una palabra que represente tu intención para este año
+            {t('tuano_word_desc')}
           </Text>
           <TextInput
             style={styles.wordInput}
             value={wordOfYear}
             onChangeText={setWordOfYear}
-            placeholder="Tu palabra..."
+            placeholder={t('tuano_word_placeholder')}
             placeholderTextColor={colors.textLight}
           />
         </Card>
@@ -128,15 +130,15 @@ export const TuAnoScreen: React.FC<TuAnoScreenProps> = ({ navigation }) => {
         <Card variant="elevated" style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Ionicons name="flag" size={24} color={colors.olive} />
-            <Text style={styles.sectionTitle}>Intenciones del Año</Text>
+            <Text style={styles.sectionTitle}>{t('tuano_intentions_title')}</Text>
           </View>
           <Text style={styles.sectionDescription}>
-            ¿Qué quieres lograr, sentir o experimentar este año?
+            {t('tuano_intentions_desc')}
           </Text>
           {intentions.map((intention, index) => (
             <Input
               key={index}
-              placeholder={`Intención ${index + 1}`}
+              placeholder={t('tuano_intention_placeholder', { number: index + 1 })}
               value={intention}
               onChangeText={(value) => updateIntention(index, value)}
             />
@@ -147,15 +149,15 @@ export const TuAnoScreen: React.FC<TuAnoScreenProps> = ({ navigation }) => {
         <Card variant="elevated" style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Ionicons name="trophy" size={24} color={colors.orange} />
-            <Text style={styles.sectionTitle}>Celebraciones</Text>
+            <Text style={styles.sectionTitle}>{t('tuano_celebrations_title')}</Text>
           </View>
           <Text style={styles.sectionDescription}>
-            Logros y momentos que quieres celebrar
+            {t('tuano_celebrations_desc')}
           </Text>
           {celebrations.map((celebration, index) => (
             <Input
               key={index}
-              placeholder={`Celebración ${index + 1}`}
+              placeholder={t('tuano_celebration_placeholder', { number: index + 1 })}
               value={celebration}
               onChangeText={(value) => updateCelebration(index, value)}
             />
@@ -165,7 +167,7 @@ export const TuAnoScreen: React.FC<TuAnoScreenProps> = ({ navigation }) => {
         {/* Save Button */}
         <View style={styles.saveButtonContainer}>
           <Button
-            title="Guardar"
+            title={t('tuano_save')}
             onPress={handleSave}
             variant="primary"
             color={colors.olive}
@@ -176,11 +178,10 @@ export const TuAnoScreen: React.FC<TuAnoScreenProps> = ({ navigation }) => {
         <Card style={styles.tipsCard}>
           <View style={styles.tipsHeader}>
             <Ionicons name="bulb" size={20} color={colors.orange} />
-            <Text style={styles.tipsTitle}>Tip para TDAH</Text>
+            <Text style={styles.tipsTitle}>{t('tuano_adhd_tip')}</Text>
           </View>
           <Text style={styles.tipsText}>
-            No te presiones por tener todo planificado. Esta es tu guía, no una lista de obligaciones.
-            Puedes modificar tus intenciones en cualquier momento del año.
+            {t('tuano_adhd_tip_content')}
           </Text>
         </Card>
       </ScrollView>

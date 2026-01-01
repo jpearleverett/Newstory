@@ -5,15 +5,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
 import { useData, Goal } from '../context/DataContext';
 import { ProgressBar, CheckBox } from '../components';
+import { useLanguage } from '../i18n/LanguageContext';
 import haptic from '../utils/haptics';
 
 // ADHD-Friendly: Reduced from 8 categories to 4 (research: fewer choices = easier decisions)
-const goalCategories = [
-  { id: 'esencial', name: 'Esencial', icon: 'star-outline', color: colors.primary, description: 'Lo más importante' },
-  { id: 'crecimiento', name: 'Crecer', icon: 'trending-up-outline', color: colors.orange, description: 'Desarrollo personal' },
-  { id: 'diversion', name: 'Disfrutar', icon: 'heart-outline', color: colors.pink, description: 'Pasatiempos y alegría' },
-  { id: 'otro', name: 'Otro', icon: 'ellipsis-horizontal-outline', color: colors.textLight, description: 'Todo lo demás' },
-];
+const goalCategoryIds = [
+  { id: 'esencial', nameKey: 'goal_cat_essential', icon: 'star-outline', color: colors.primary, descKey: 'goal_cat_essential_desc' },
+  { id: 'crecimiento', nameKey: 'goal_cat_growth', icon: 'trending-up-outline', color: colors.orange, descKey: 'goal_cat_growth_desc' },
+  { id: 'diversion', nameKey: 'goal_cat_enjoy', icon: 'heart-outline', color: colors.pink, descKey: 'goal_cat_enjoy_desc' },
+  { id: 'otro', nameKey: 'goal_cat_other', icon: 'ellipsis-horizontal-outline', color: colors.textLight, descKey: 'goal_cat_other_desc' },
+] as const;
 
 interface MetasScreenProps {
   navigation: any;
@@ -21,10 +22,18 @@ interface MetasScreenProps {
 
 export const MetasScreen: React.FC<MetasScreenProps> = ({ navigation }) => {
   const { data, addGoal, updateGoal, deleteGoal } = useData();
+  const { t } = useLanguage();
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(goalCategories[0]);
+  const [selectedCategory, setSelectedCategory] = useState(goalCategoryIds[0]);
   const [goalTitle, setGoalTitle] = useState('');
   const [goalSteps, setGoalSteps] = useState(['', '', '']);
+
+  // Helper to get category info with translated name
+  const getCategoryWithTranslation = (cat: typeof goalCategoryIds[number]) => ({
+    ...cat,
+    name: t(cat.nameKey as any),
+    description: t(cat.descKey as any),
+  });
 
   const handleAddGoal = async () => {
     if (!goalTitle.trim()) return;
@@ -60,7 +69,8 @@ export const MetasScreen: React.FC<MetasScreenProps> = ({ navigation }) => {
   };
 
   const getCategoryInfo = (categoryId: string) => {
-    return goalCategories.find(c => c.id === categoryId) || goalCategories[3];
+    const cat = goalCategoryIds.find(c => c.id === categoryId) || goalCategoryIds[3];
+    return getCategoryWithTranslation(cat);
   };
 
   const completedGoals = data.goals.filter(g => g.progress === 100).length;
@@ -74,11 +84,11 @@ export const MetasScreen: React.FC<MetasScreenProps> = ({ navigation }) => {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.title}>Mis Metas</Text>
+            <Text style={styles.title}>{t('metas_title')}</Text>
             <Text style={styles.subtitle}>
               {data.goals.length === 0
-                ? 'Empieza con una meta pequeña'
-                : `${completedGoals} de ${data.goals.length} completadas`}
+                ? t('metas_start_small')
+                : t('metas_completed_count', { completed: completedGoals, total: data.goals.length })}
             </Text>
           </View>
           <TouchableOpacity onPress={() => setShowAddModal(true)} style={styles.addButton}>
@@ -90,15 +100,15 @@ export const MetasScreen: React.FC<MetasScreenProps> = ({ navigation }) => {
         {data.goals.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="flag-outline" size={48} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>Sin metas aún</Text>
+            <Text style={styles.emptyTitle}>{t('metas_no_goals')}</Text>
             <Text style={styles.emptyText}>
-              Una meta pequeña es mejor que ninguna meta.
+              {t('metas_empty_text')}
             </Text>
             <TouchableOpacity
               style={styles.emptyButton}
               onPress={() => setShowAddModal(true)}
             >
-              <Text style={styles.emptyButtonText}>Crear mi primera meta</Text>
+              <Text style={styles.emptyButtonText}>{t('metas_create_first')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -151,7 +161,7 @@ export const MetasScreen: React.FC<MetasScreenProps> = ({ navigation }) => {
         <View style={styles.tipCard}>
           <Ionicons name="leaf" size={18} color={colors.primary} />
           <Text style={styles.tipText}>
-            Tip: Las metas pequeñas y específicas se logran más fácil. "Caminar 10 minutos" es mejor que "hacer ejercicio".
+            {t('metas_tip')}
           </Text>
         </View>
 
@@ -163,16 +173,16 @@ export const MetasScreen: React.FC<MetasScreenProps> = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Nueva Meta</Text>
+              <Text style={styles.modalTitle}>{t('metas_new_goal')}</Text>
               <TouchableOpacity onPress={() => setShowAddModal(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
             {/* Category Selection - 4 options, displayed as simple chips */}
-            <Text style={styles.inputLabel}>Tipo de meta</Text>
+            <Text style={styles.inputLabel}>{t('metas_goal_type')}</Text>
             <View style={styles.categoriesRow}>
-              {goalCategories.map(cat => (
+              {goalCategoryIds.map(cat => (
                 <TouchableOpacity
                   key={cat.id}
                   style={[
@@ -193,29 +203,29 @@ export const MetasScreen: React.FC<MetasScreenProps> = ({ navigation }) => {
                     styles.categoryChipText,
                     selectedCategory.id === cat.id && { color: colors.white },
                   ]}>
-                    {cat.name}
+                    {t(cat.nameKey as any)}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             {/* Goal Title */}
-            <Text style={styles.inputLabel}>¿Cuál es tu meta?</Text>
+            <Text style={styles.inputLabel}>{t('metas_goal_question')}</Text>
             <TextInput
               style={styles.textInput}
-              placeholder="Ej: Caminar 15 minutos al día"
+              placeholder={t('metas_goal_placeholder')}
               placeholderTextColor={colors.textMuted}
               value={goalTitle}
               onChangeText={setGoalTitle}
             />
 
             {/* Simple Steps - 3 max */}
-            <Text style={styles.inputLabel}>Pasos pequeños (opcional)</Text>
+            <Text style={styles.inputLabel}>{t('metas_small_steps')}</Text>
             {goalSteps.map((step, index) => (
               <TextInput
                 key={index}
                 style={styles.stepInput}
-                placeholder={`Paso ${index + 1}`}
+                placeholder={t('metas_step_placeholder', { number: index + 1 })}
                 placeholderTextColor={colors.textMuted}
                 value={step}
                 onChangeText={(value) => {
@@ -231,7 +241,7 @@ export const MetasScreen: React.FC<MetasScreenProps> = ({ navigation }) => {
               onPress={handleAddGoal}
               disabled={!goalTitle.trim()}
             >
-              <Text style={styles.createButtonText}>Crear Meta</Text>
+              <Text style={styles.createButtonText}>{t('metas_create_goal')}</Text>
             </TouchableOpacity>
           </View>
         </View>
