@@ -15,3 +15,7 @@ export { BodyDoublingCounter } from './BodyDoublingCounter';
 export { ManifestationModal } from './ManifestationModal';
 export { VoiceBrainDumpModal } from './VoiceBrainDumpModal';
 export type { ParsedItem, ParsedCategory } from './VoiceBrainDumpModal';
+// New Feature Components
+export { ImpulsePauseModal } from './ImpulsePauseModal';
+export { SimplifierChallengeModal } from './SimplifierChallengeModal';
+export { VisionBoardModal } from './VisionBoardModal';

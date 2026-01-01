@@ -22,6 +22,8 @@ import {
   shadows,
   getEnergyMode,
   getVisibleSections,
+  getEnergyTheme,
+  energyThemes,
 } from '../styles/theme';
 import { useData, DailyEntry } from '../context/DataContext';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -91,6 +93,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const currentEnergyLevel = data.userSession?.currentEnergyLevel ?? 50;
   const energyMode = getEnergyMode(currentEnergyLevel);
   const visibleSections = getVisibleSections(currentEnergyLevel);
+  const energyTheme = getEnergyTheme(currentEnergyLevel);
+
+  // Track if 369 manifestation has been shown this period
+  const [manifestation369Shown, setManifestation369Shown] = useState<string | null>(null);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -154,7 +160,49 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [language]); // Re-run when language changes to update labels
+
+    // 369 Manifestation Auto-Trigger
+    const check369Manifestation = () => {
+      const hour = new Date().getHours();
+      const manifestation = getTodayManifestation();
+
+      // Define time periods: Morning (6-11), Afternoon (12-17), Evening (18-22)
+      let currentPeriod: 'morning' | 'afternoon' | 'evening' | null = null;
+      if (hour >= 6 && hour < 12) currentPeriod = 'morning';
+      else if (hour >= 12 && hour < 18) currentPeriod = 'afternoon';
+      else if (hour >= 18 && hour < 23) currentPeriod = 'evening';
+
+      if (currentPeriod && manifestation369Shown !== currentPeriod) {
+        // Check if this period's count is not yet complete
+        if (manifestation) {
+          const counts = {
+            morning: { current: manifestation.morningCount, max: 3 },
+            afternoon: { current: manifestation.afternoonCount, max: 6 },
+            evening: { current: manifestation.eveningCount, max: 9 },
+          };
+
+          if (counts[currentPeriod].current < counts[currentPeriod].max) {
+            // Show manifestation modal after a delay
+            setTimeout(() => {
+              setShowManifestationModal(true);
+              setManifestation369Shown(currentPeriod);
+            }, 2000);
+          }
+        } else if (currentPeriod === 'morning') {
+          // No manifestation yet, prompt to create one in the morning
+          setTimeout(() => {
+            setShowManifestationModal(true);
+            setManifestation369Shown(currentPeriod);
+          }, 2000);
+        }
+      }
+    };
+
+    // Only check 369 after compassionate flows are done
+    if (!showEnergyCheck && !showSunriseReset) {
+      check369Manifestation();
+    }
+  }, [language, showEnergyCheck, showSunriseReset]); // Re-run when language changes or modals close
 
   const saveEntry = async (updates: Partial<DailyEntry>) => {
     const updatedEntry = { ...entry, ...updates };
@@ -316,8 +364,27 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const totalCount = entry.planned?.length || 0;
   const hasCheckedIn = entry.mood !== undefined && entry.mood >= 0;
 
+  // Dynamic styles based on energy level
+  const dynamicStyles = {
+    safeArea: {
+      backgroundColor: energyTheme.background,
+    },
+    dayName: {
+      color: energyTheme.text,
+    },
+    dateString: {
+      color: energyTheme.textSecondary,
+    },
+    focusCard: {
+      backgroundColor: energyTheme.backgroundCard,
+    },
+    primary: {
+      color: energyTheme.primary,
+    },
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, dynamicStyles.safeArea]}>
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
@@ -333,10 +400,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           {/* Header - Simple, focused on TODAY */}
           <View style={styles.header}>
             <View style={styles.dateContainer}>
-              <Text style={styles.dayName}>
+              <Text style={[styles.dayName, dynamicStyles.dayName]}>
                 {dayName.charAt(0).toUpperCase() + dayName.slice(1)}
               </Text>
-              <Text style={styles.dateString}>{dateString}</Text>
+              <Text style={[styles.dateString, dynamicStyles.dateString]}>{dateString}</Text>
             </View>
             {totalCount > 0 && (
               <View style={styles.progressBadge}>
@@ -455,10 +522,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           )}
 
           {/* Main Focus Card - THE core feature */}
-          <View style={styles.focusCard}>
+          <View style={[styles.focusCard, dynamicStyles.focusCard]}>
             <View style={styles.focusHeader}>
-              <Ionicons name="sunny" size={24} color={colors.primary} />
-              <Text style={styles.focusTitle}>{t('focus_title')}</Text>
+              <Ionicons name="sunny" size={24} color={energyTheme.primary} />
+              <Text style={[styles.focusTitle, dynamicStyles.dayName]}>{t('focus_title')}</Text>
             </View>
 
             <Text style={styles.focusSubtitle}>

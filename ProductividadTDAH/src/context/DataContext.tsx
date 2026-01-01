@@ -116,6 +116,34 @@ export interface ManifestationEntry {
   eveningCount: number;
 }
 
+// Vision Board items
+export interface VisionItem {
+  id: string;
+  imageUri?: string;
+  text: string;
+  feeling?: string;
+}
+
+export interface VisionBoard {
+  tenYear: VisionItem[];
+  oneYear: VisionItem[];
+}
+
+// 30-Day Simplifier Challenge
+export interface SimplifierChallenge {
+  startDate: string;
+  completedDays: number[];
+}
+
+// Impulse Pause reminders
+export interface ImpulseReminder {
+  id: string;
+  item: string;
+  scheduledFor: string; // ISO timestamp
+  isNeed: boolean;
+  dismissed: boolean;
+}
+
 interface AppData {
   goals: Goal[];
   dailyEntries: DailyEntry[];
@@ -130,6 +158,9 @@ interface AppData {
   brainDumps: { id: string; date: string; items: string[] }[];
   userSession: UserSession;
   manifestations: ManifestationEntry[];
+  visionBoard: VisionBoard;
+  simplifierChallenge: SimplifierChallenge;
+  impulseReminders: ImpulseReminder[];
 }
 
 interface DataContextType {
@@ -183,6 +214,17 @@ interface DataContextType {
   addManifestation: (intention: string) => Promise<void>;
   updateManifestation: (id: string, period: 'morning' | 'afternoon' | 'evening') => Promise<void>;
   getTodayManifestation: () => ManifestationEntry | undefined;
+  // Vision Board
+  updateVisionBoard: (timeframe: '10year' | '1year', items: VisionItem[]) => Promise<void>;
+  getVisionBoard: () => VisionBoard;
+  // Simplifier Challenge
+  startSimplifierChallenge: () => Promise<void>;
+  completeSimplifierDay: (day: number) => Promise<void>;
+  getSimplifierProgress: () => { currentDay: number; completedDays: number[] };
+  // Impulse Reminders
+  addImpulseReminder: (item: string) => Promise<void>;
+  dismissImpulseReminder: (id: string) => Promise<void>;
+  getPendingReminders: () => ImpulseReminder[];
 }
 
 const defaultUserSession: UserSession = {
@@ -207,6 +249,9 @@ const defaultData: AppData = {
   brainDumps: [],
   userSession: defaultUserSession,
   manifestations: [],
+  visionBoard: { tenYear: [], oneYear: [] },
+  simplifierChallenge: { startDate: '', completedDays: [] },
+  impulseReminders: [],
 };
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -530,6 +575,90 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return data.manifestations.find(m => m.date === today);
   };
 
+  // Vision Board Methods
+  const updateVisionBoard = async (timeframe: '10year' | '1year', items: VisionItem[]) => {
+    const visionBoard = data.visionBoard || { tenYear: [], oneYear: [] };
+    const updated = {
+      ...visionBoard,
+      [timeframe === '10year' ? 'tenYear' : 'oneYear']: items,
+    };
+    await saveData({ ...data, visionBoard: updated });
+  };
+
+  const getVisionBoard = (): VisionBoard => {
+    return data.visionBoard || { tenYear: [], oneYear: [] };
+  };
+
+  // Simplifier Challenge Methods
+  const startSimplifierChallenge = async () => {
+    const challenge: SimplifierChallenge = {
+      startDate: new Date().toISOString().split('T')[0],
+      completedDays: [],
+    };
+    await saveData({ ...data, simplifierChallenge: challenge });
+  };
+
+  const completeSimplifierDay = async (day: number) => {
+    const challenge = data.simplifierChallenge || { startDate: '', completedDays: [] };
+    if (!challenge.completedDays.includes(day)) {
+      const updated = {
+        ...challenge,
+        completedDays: [...challenge.completedDays, day].sort((a, b) => a - b),
+      };
+      await saveData({ ...data, simplifierChallenge: updated });
+    }
+  };
+
+  const getSimplifierProgress = (): { currentDay: number; completedDays: number[] } => {
+    const challenge = data.simplifierChallenge || { startDate: '', completedDays: [] };
+    if (!challenge.startDate) {
+      return { currentDay: 1, completedDays: [] };
+    }
+
+    const startDate = new Date(challenge.startDate);
+    const today = new Date();
+    const diffTime = today.getTime() - startDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    const currentDay = Math.min(Math.max(1, diffDays), 30);
+
+    return {
+      currentDay,
+      completedDays: challenge.completedDays,
+    };
+  };
+
+  // Impulse Reminder Methods
+  const addImpulseReminder = async (item: string) => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(10, 0, 0, 0); // 10 AM tomorrow
+
+    const reminder: ImpulseReminder = {
+      id: generateId(),
+      item,
+      scheduledFor: tomorrow.toISOString(),
+      isNeed: false,
+      dismissed: false,
+    };
+
+    const reminders = [...(data.impulseReminders || []), reminder];
+    await saveData({ ...data, impulseReminders: reminders });
+  };
+
+  const dismissImpulseReminder = async (id: string) => {
+    const reminders = (data.impulseReminders || []).map(r =>
+      r.id === id ? { ...r, dismissed: true } : r
+    );
+    await saveData({ ...data, impulseReminders: reminders });
+  };
+
+  const getPendingReminders = (): ImpulseReminder[] => {
+    const now = new Date().toISOString();
+    return (data.impulseReminders || []).filter(
+      r => !r.dismissed && r.scheduledFor <= now
+    );
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -572,6 +701,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         addManifestation,
         updateManifestation,
         getTodayManifestation,
+        // Vision Board
+        updateVisionBoard,
+        getVisionBoard,
+        // Simplifier Challenge
+        startSimplifierChallenge,
+        completeSimplifierDay,
+        getSimplifierProgress,
+        // Impulse Reminders
+        addImpulseReminder,
+        dismissImpulseReminder,
+        getPendingReminders,
       }}
     >
       {children}
