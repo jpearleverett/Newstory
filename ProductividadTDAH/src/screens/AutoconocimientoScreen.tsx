@@ -5,60 +5,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
 import { Card, Button, Input } from '../components';
 import { useData } from '../context/DataContext';
+import { useLanguage } from '../i18n/LanguageContext';
 
-const reflectionPrompts = {
-  strength: [
-    '¿Cuáles son mis 3 mayores fortalezas?',
-    '¿Qué habilidades me hacen único/a?',
-    '¿Qué logro me hace sentir más orgulloso/a?',
-    '¿Qué dicen otros que hago bien?',
-  ],
-  weakness: [
-    '¿Qué áreas me gustaría mejorar?',
-    '¿Qué me cuesta más trabajo?',
-    '¿Qué situaciones me generan más estrés?',
-    '¿Qué feedback he recibido que debería considerar?',
-  ],
-  growth: [
-    '¿Qué aprendí esta semana?',
-    '¿Cómo he crecido en el último año?',
-    '¿Qué desafío me hizo más fuerte?',
-    '¿Qué creencia limitante he superado?',
-  ],
-  values: [
-    '¿Qué es lo más importante para mí?',
-    '¿Qué no estoy dispuesto/a a sacrificar?',
-    '¿Qué me hace sentir realizado/a?',
-    '¿Cómo quiero ser recordado/a?',
-  ],
-};
+const reflectionPromptKeys = {
+  strength: ['prompt_strength_1', 'prompt_strength_2', 'prompt_strength_3', 'prompt_strength_4'],
+  weakness: ['prompt_weakness_1', 'prompt_weakness_2', 'prompt_weakness_3', 'prompt_weakness_4'],
+  growth: ['prompt_growth_1', 'prompt_growth_2', 'prompt_growth_3', 'prompt_growth_4'],
+  values: ['prompt_values_1', 'prompt_values_2', 'prompt_values_3', 'prompt_values_4'],
+} as const;
 
-const growthMindsetExercises = [
-  {
-    id: 'reframe',
-    title: 'Reencuadrar pensamientos',
-    description: 'Transforma "No puedo" en "Todavía no puedo"',
-    icon: 'refresh-outline',
-  },
-  {
-    id: 'celebrate',
-    title: 'Celebrar errores',
-    description: 'Los errores son oportunidades de aprendizaje',
-    icon: 'trophy-outline',
-  },
-  {
-    id: 'process',
-    title: 'Valorar el proceso',
-    description: 'El esfuerzo importa más que el resultado',
-    icon: 'trending-up-outline',
-  },
-  {
-    id: 'feedback',
-    title: 'Buscar feedback',
-    description: 'Las críticas constructivas nos hacen crecer',
-    icon: 'chatbubbles-outline',
-  },
-];
+const growthMindsetExerciseIds = [
+  { id: 'reframe', titleKey: 'exercise_reframe_title', descKey: 'exercise_reframe_desc', icon: 'refresh-outline' },
+  { id: 'celebrate', titleKey: 'exercise_celebrate_title', descKey: 'exercise_celebrate_desc', icon: 'trophy-outline' },
+  { id: 'process', titleKey: 'exercise_process_title', descKey: 'exercise_process_desc', icon: 'trending-up-outline' },
+  { id: 'feedback', titleKey: 'exercise_feedback_title', descKey: 'exercise_feedback_desc', icon: 'chatbubbles-outline' },
+] as const;
 
 interface AutoconocimientoScreenProps {
   navigation: any;
@@ -66,8 +27,9 @@ interface AutoconocimientoScreenProps {
 
 export const AutoconocimientoScreen: React.FC<AutoconocimientoScreenProps> = ({ navigation }) => {
   const { data, addReflection } = useData();
+  const { t, language } = useLanguage();
   const [showReflectionModal, setShowReflectionModal] = useState(false);
-  const [selectedType, setSelectedType] = useState<keyof typeof reflectionPrompts>('strength');
+  const [selectedType, setSelectedType] = useState<keyof typeof reflectionPromptKeys>('strength');
   const [selectedPrompt, setSelectedPrompt] = useState('');
   const [reflectionText, setReflectionText] = useState('');
 
@@ -108,10 +70,10 @@ export const AutoconocimientoScreen: React.FC<AutoconocimientoScreenProps> = ({ 
 
   const getTypeName = (type: string) => {
     switch (type) {
-      case 'strength': return 'Fortalezas';
-      case 'weakness': return 'Áreas de mejora';
-      case 'growth': return 'Crecimiento';
-      case 'values': return 'Valores';
+      case 'strength': return t('reflection_strengths');
+      case 'weakness': return t('reflection_areas');
+      case 'growth': return t('reflection_growth');
+      case 'values': return t('reflection_values');
       default: return 'General';
     }
   };
@@ -125,25 +87,24 @@ export const AutoconocimientoScreen: React.FC<AutoconocimientoScreenProps> = ({ 
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.title}>Autoconocimiento</Text>
-            <Text style={styles.subtitle}>Conócete, acéptate, crece</Text>
+            <Text style={styles.title}>{t('autocon_title')}</Text>
+            <Text style={styles.subtitle}>{t('autocon_subtitle')}</Text>
           </View>
         </View>
 
         {/* Intro Card */}
         <Card style={styles.introCard}>
           <Ionicons name="heart" size={32} color={colors.pink} />
-          <Text style={styles.introTitle}>Tu viaje hacia ti mismo/a</Text>
+          <Text style={styles.introTitle}>{t('autocon_intro_title')}</Text>
           <Text style={styles.introText}>
-            El autoconocimiento es la base del crecimiento personal. Con TDAH, es especialmente
-            importante entender cómo funciona tu mente para trabajar con ella, no contra ella.
+            {t('autocon_intro_text')}
           </Text>
         </Card>
 
         {/* Reflection Types */}
-        <Text style={styles.sectionTitle}>Áreas de Reflexión</Text>
+        <Text style={styles.sectionTitle}>{t('autocon_areas')}</Text>
         <View style={styles.typesContainer}>
-          {(Object.keys(reflectionPrompts) as Array<keyof typeof reflectionPrompts>).map((type) => (
+          {(Object.keys(reflectionPromptKeys) as Array<keyof typeof reflectionPromptKeys>).map((type) => (
             <TouchableOpacity
               key={type}
               style={[styles.typeCard, { borderColor: getTypeColor(type) }]}
@@ -157,7 +118,7 @@ export const AutoconocimientoScreen: React.FC<AutoconocimientoScreenProps> = ({ 
               </View>
               <Text style={styles.typeName}>{getTypeName(type)}</Text>
               <Text style={styles.typeCount}>
-                {data.reflections.filter(r => r.type === type).length} reflexiones
+                {t('autocon_reflections_count', { count: data.reflections.filter(r => r.type === type).length })}
               </Text>
             </TouchableOpacity>
           ))}
@@ -167,20 +128,20 @@ export const AutoconocimientoScreen: React.FC<AutoconocimientoScreenProps> = ({ 
         <Card variant="elevated" style={styles.growthCard}>
           <View style={styles.growthHeader}>
             <Ionicons name="rocket-outline" size={24} color={colors.orange} />
-            <Text style={styles.growthTitle}>Mentalidad de Crecimiento</Text>
+            <Text style={styles.growthTitle}>{t('autocon_growth_mindset')}</Text>
           </View>
           <Text style={styles.growthDescription}>
-            Adopta una mentalidad que ve los desafíos como oportunidades
+            {t('autocon_growth_desc')}
           </Text>
 
-          {growthMindsetExercises.map((exercise) => (
+          {growthMindsetExerciseIds.map((exercise) => (
             <View key={exercise.id} style={styles.exerciseItem}>
               <View style={styles.exerciseIcon}>
                 <Ionicons name={exercise.icon as any} size={20} color={colors.orange} />
               </View>
               <View style={styles.exerciseContent}>
-                <Text style={styles.exerciseTitle}>{exercise.title}</Text>
-                <Text style={styles.exerciseDescription}>{exercise.description}</Text>
+                <Text style={styles.exerciseTitle}>{t(exercise.titleKey as any)}</Text>
+                <Text style={styles.exerciseDescription}>{t(exercise.descKey as any)}</Text>
               </View>
             </View>
           ))}
@@ -191,7 +152,7 @@ export const AutoconocimientoScreen: React.FC<AutoconocimientoScreenProps> = ({ 
           <Card variant="elevated" style={styles.recentCard}>
             <View style={styles.sectionHeader}>
               <Ionicons name="time-outline" size={20} color={colors.textLight} />
-              <Text style={styles.recentTitle}>Reflexiones Recientes</Text>
+              <Text style={styles.recentTitle}>{t('autocon_recent')}</Text>
             </View>
 
             {data.reflections.slice(-3).reverse().map((reflection) => (
@@ -208,7 +169,7 @@ export const AutoconocimientoScreen: React.FC<AutoconocimientoScreenProps> = ({ 
                     </Text>
                   </View>
                   <Text style={styles.reflectionDate}>
-                    {new Date(reflection.date).toLocaleDateString('es-ES')}
+                    {new Date(reflection.date).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US')}
                   </Text>
                 </View>
                 <Text style={styles.reflectionPrompt}>{reflection.prompt}</Text>
@@ -224,11 +185,10 @@ export const AutoconocimientoScreen: React.FC<AutoconocimientoScreenProps> = ({ 
         <Card style={styles.affirmationsCard}>
           <View style={styles.affirmationsHeader}>
             <Ionicons name="sparkles" size={24} color={colors.white} />
-            <Text style={styles.affirmationsTitle}>Afirmación del Día</Text>
+            <Text style={styles.affirmationsTitle}>{t('autocon_affirmation_title')}</Text>
           </View>
           <Text style={styles.affirmationText}>
-            "Mi cerebro TDAH me da creatividad, hiperfocus y una perspectiva única.
-            Soy capaz de lograr grandes cosas a mi propio ritmo."
+            {t('autocon_affirmation_text')}
           </Text>
         </Card>
 
@@ -236,12 +196,10 @@ export const AutoconocimientoScreen: React.FC<AutoconocimientoScreenProps> = ({ 
         <Card style={styles.tipsCard}>
           <View style={styles.tipsHeader}>
             <Ionicons name="bulb" size={20} color={colors.orange} />
-            <Text style={styles.tipsTitle}>Tip para TDAH</Text>
+            <Text style={styles.tipsTitle}>{t('autocon_adhd_tip')}</Text>
           </View>
           <Text style={styles.tipsText}>
-            La introspección puede ser difícil con TDAH. No te presiones por tener todas
-            las respuestas de inmediato. Regresa a estas reflexiones cuando te sientas
-            con claridad mental.
+            {t('autocon_adhd_tip_content')}
           </Text>
         </Card>
       </ScrollView>
@@ -253,39 +211,42 @@ export const AutoconocimientoScreen: React.FC<AutoconocimientoScreenProps> = ({ 
             <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalTitle}>{getTypeName(selectedType)}</Text>
-                <Text style={styles.modalSubtitle}>Reflexión personal</Text>
+                <Text style={styles.modalSubtitle}>{t('autocon_personal_reflection')}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowReflectionModal(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.promptsLabel}>Elige una pregunta para reflexionar:</Text>
+            <Text style={styles.promptsLabel}>{t('autocon_choose_prompt')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.promptsScroll}>
-              {reflectionPrompts[selectedType].map((prompt, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.promptChip,
-                    selectedPrompt === prompt && { backgroundColor: getTypeColor(selectedType) },
-                  ]}
-                  onPress={() => setSelectedPrompt(prompt)}
-                >
-                  <Text style={[
-                    styles.promptChipText,
-                    selectedPrompt === prompt && { color: colors.white },
-                  ]}>
-                    {prompt}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {reflectionPromptKeys[selectedType].map((promptKey, index) => {
+                const translatedPrompt = t(promptKey as any);
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.promptChip,
+                      selectedPrompt === translatedPrompt && { backgroundColor: getTypeColor(selectedType) },
+                    ]}
+                    onPress={() => setSelectedPrompt(translatedPrompt)}
+                  >
+                    <Text style={[
+                      styles.promptChipText,
+                      selectedPrompt === translatedPrompt && { color: colors.white },
+                    ]}>
+                      {translatedPrompt}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
 
             {selectedPrompt && (
               <>
                 <Text style={styles.selectedPrompt}>{selectedPrompt}</Text>
                 <Input
-                  placeholder="Escribe tu reflexión aquí..."
+                  placeholder={t('autocon_reflection_placeholder')}
                   value={reflectionText}
                   onChangeText={setReflectionText}
                   multiline
@@ -295,7 +256,7 @@ export const AutoconocimientoScreen: React.FC<AutoconocimientoScreenProps> = ({ 
             )}
 
             <Button
-              title="Guardar Reflexión"
+              title={t('autocon_save_reflection')}
               onPress={handleSaveReflection}
               variant="primary"
               color={getTypeColor(selectedType)}

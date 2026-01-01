@@ -3,9 +3,10 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, enUS } from 'date-fns/locale';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
 import { useData, DailyEntry } from '../context/DataContext';
+import { useLanguage } from '../i18n/LanguageContext';
 import haptic from '../utils/haptics';
 
 interface DiarioScreenProps {
@@ -17,7 +18,9 @@ interface DiarioScreenProps {
 
 export const DiarioScreen: React.FC<DiarioScreenProps> = ({ navigation }) => {
   const { getDailyEntry, addDailyEntry } = useData();
+  const { t, language } = useLanguage();
   const today = format(new Date(), 'yyyy-MM-dd');
+  const dateLocale = language === 'es' ? es : enUS;
 
   const [entry, setEntry] = useState<Partial<DailyEntry>>({
     date: today,
@@ -102,9 +105,9 @@ export const DiarioScreen: React.FC<DiarioScreenProps> = ({ navigation }) => {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.title}>Mi Diario</Text>
+            <Text style={styles.title}>{t('diario_title')}</Text>
             <Text style={styles.subtitle}>
-              {format(new Date(), "EEEE, d 'de' MMMM", { locale: es })}
+              {format(new Date(), language === 'es' ? "EEEE, d 'de' MMMM" : "EEEE, MMMM d", { locale: dateLocale })}
             </Text>
           </View>
         </View>
@@ -115,7 +118,7 @@ export const DiarioScreen: React.FC<DiarioScreenProps> = ({ navigation }) => {
             <View style={styles.summaryRow}>
               <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
               <Text style={styles.summaryText}>
-                {tasksCompleted} de {tasksTotal} tareas completadas hoy
+                {t('diario_tasks_completed', { completed: tasksCompleted, total: tasksTotal })}
               </Text>
             </View>
           </View>
@@ -132,9 +135,9 @@ export const DiarioScreen: React.FC<DiarioScreenProps> = ({ navigation }) => {
               <Ionicons name="cloud-outline" size={20} color={colors.pink} />
             </View>
             <View>
-              <Text style={styles.sectionTitle}>Vaciar la Mente</Text>
+              <Text style={styles.sectionTitle}>{t('diario_brain_dump')}</Text>
               <Text style={styles.sectionSubtitle}>
-                Saca todo lo que te preocupa
+                {t('diario_brain_dump_subtitle')}
               </Text>
             </View>
           </View>
@@ -150,7 +153,7 @@ export const DiarioScreen: React.FC<DiarioScreenProps> = ({ navigation }) => {
             <View style={styles.inputRow}>
               <TextInput
                 style={styles.textInput}
-                placeholder="¿Qué está en tu cabeza?"
+                placeholder={t('diario_input_placeholder')}
                 placeholderTextColor={colors.textMuted}
                 value={newDumpItem}
                 onChangeText={setNewDumpItem}
@@ -168,7 +171,7 @@ export const DiarioScreen: React.FC<DiarioScreenProps> = ({ navigation }) => {
 
             {(entry.dump || []).length === 0 ? (
               <Text style={styles.emptyText}>
-                Escribe lo que sea. Sin filtros, sin juicios.
+                {t('diario_empty_dump')}
               </Text>
             ) : (
               <View style={styles.itemsList}>
@@ -196,9 +199,9 @@ export const DiarioScreen: React.FC<DiarioScreenProps> = ({ navigation }) => {
               <Ionicons name="heart-outline" size={20} color={colors.orange} />
             </View>
             <View>
-              <Text style={styles.sectionTitle}>Gratitud</Text>
+              <Text style={styles.sectionTitle}>{t('diario_gratitude')}</Text>
               <Text style={styles.sectionSubtitle}>
-                3 cosas buenas de hoy
+                {t('diario_gratitude_subtitle')}
               </Text>
             </View>
           </View>
@@ -216,7 +219,7 @@ export const DiarioScreen: React.FC<DiarioScreenProps> = ({ navigation }) => {
                 <Text style={styles.gratitudeNumber}>{index + 1}</Text>
                 <TextInput
                   style={styles.gratitudeInput}
-                  placeholder="Estoy agradecido/a por..."
+                  placeholder={t('diario_gratitude_placeholder')}
                   placeholderTextColor={colors.textMuted}
                   value={(entry.gratitude || [])[index] || ''}
                   onChangeText={(value) => updateGratitude(index, value)}
@@ -237,9 +240,9 @@ export const DiarioScreen: React.FC<DiarioScreenProps> = ({ navigation }) => {
               <Ionicons name="document-text-outline" size={20} color={colors.primary} />
             </View>
             <View>
-              <Text style={styles.sectionTitle}>Notas</Text>
+              <Text style={styles.sectionTitle}>{t('diario_notes')}</Text>
               <Text style={styles.sectionSubtitle}>
-                Reflexiones del día
+                {t('diario_notes_subtitle')}
               </Text>
             </View>
           </View>
@@ -254,7 +257,7 @@ export const DiarioScreen: React.FC<DiarioScreenProps> = ({ navigation }) => {
           <View style={styles.sectionContent}>
             <TextInput
               style={styles.notesInput}
-              placeholder="¿Qué aprendiste hoy? ¿Cómo te sientes?"
+              placeholder={t('diario_notes_placeholder')}
               placeholderTextColor={colors.textMuted}
               value={entry.notes || ''}
               onChangeText={(value) => saveEntry({ notes: value })}
@@ -269,7 +272,7 @@ export const DiarioScreen: React.FC<DiarioScreenProps> = ({ navigation }) => {
         <View style={styles.tipCard}>
           <Ionicons name="leaf" size={18} color={colors.primary} />
           <Text style={styles.tipText}>
-            Este es tu espacio seguro. No hay forma correcta o incorrecta de usarlo.
+            {t('diario_tip')}
           </Text>
         </View>
 

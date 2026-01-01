@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
 import { useData, SelfCareEntry } from '../context/DataContext';
+import { useLanguage } from '../i18n/LanguageContext';
 import haptic from '../utils/haptics';
 
 interface AutocuidadoScreenProps {
@@ -16,6 +17,7 @@ interface AutocuidadoScreenProps {
 
 export const AutocuidadoScreen: React.FC<AutocuidadoScreenProps> = ({ navigation }) => {
   const { getSelfCareEntry, addSelfCareEntry } = useData();
+  const { t } = useLanguage();
   const today = format(new Date(), 'yyyy-MM-dd');
 
   const [entry, setEntry] = useState<Partial<SelfCareEntry>>({
@@ -84,12 +86,12 @@ export const AutocuidadoScreen: React.FC<AutocuidadoScreenProps> = ({ navigation
 
   const wellnessScore = getWellnessScore();
   const wellnessMessage = wellnessScore === 3
-    ? '¡Excelente autocuidado hoy!'
+    ? t('autocuidado_excellent')
     : wellnessScore === 2
-    ? '¡Vas muy bien!'
+    ? t('autocuidado_good')
     : wellnessScore === 1
-    ? 'Un paso a la vez'
-    : 'Cada pequeña acción cuenta';
+    ? t('autocuidado_step')
+    : t('autocuidado_start');
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -100,8 +102,8 @@ export const AutocuidadoScreen: React.FC<AutocuidadoScreenProps> = ({ navigation
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.title}>Bienestar</Text>
-            <Text style={styles.subtitle}>Solo 3 cosas importan hoy</Text>
+            <Text style={styles.title}>{t('autocuidado_title')}</Text>
+            <Text style={styles.subtitle}>{t('autocuidado_subtitle')}</Text>
           </View>
         </View>
 
@@ -128,9 +130,9 @@ export const AutocuidadoScreen: React.FC<AutocuidadoScreenProps> = ({ navigation
               <Ionicons name="water" size={24} color={colors.priorizacion} />
             </View>
             <View style={styles.trackerInfo}>
-              <Text style={styles.trackerTitle}>Agua</Text>
+              <Text style={styles.trackerTitle}>{t('autocuidado_water')}</Text>
               <Text style={styles.trackerSubtitle}>
-                {(entry.water || 0) >= 4 ? '¡Bien hidratado!' : '¿Tomaste agua?'}
+                {(entry.water || 0) >= 4 ? t('autocuidado_hydrated') : t('autocuidado_drink_water')}
               </Text>
             </View>
           </View>
@@ -153,7 +155,7 @@ export const AutocuidadoScreen: React.FC<AutocuidadoScreenProps> = ({ navigation
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.waterCount}>{entry.water || 0} vasos</Text>
+          <Text style={styles.waterCount}>{t('autocuidado_glasses', { count: entry.water || 0 })}</Text>
         </View>
 
         {/* 2. SLEEP - Simplified */}
@@ -163,9 +165,9 @@ export const AutocuidadoScreen: React.FC<AutocuidadoScreenProps> = ({ navigation
               <Ionicons name="moon" size={24} color={colors.proyectos} />
             </View>
             <View style={styles.trackerInfo}>
-              <Text style={styles.trackerTitle}>Sueño</Text>
+              <Text style={styles.trackerTitle}>{t('autocuidado_sleep')}</Text>
               <Text style={styles.trackerSubtitle}>
-                {(entry.sleep || 0) >= 7 ? '¡Buen descanso!' : '¿Cuántas horas dormiste?'}
+                {(entry.sleep || 0) >= 7 ? t('autocuidado_good_rest') : t('autocuidado_hours_slept')}
               </Text>
             </View>
           </View>
@@ -217,13 +219,13 @@ export const AutocuidadoScreen: React.FC<AutocuidadoScreenProps> = ({ navigation
                 styles.trackerTitle,
                 movedToday && styles.movementTitleActive,
               ]}>
-                Movimiento
+                {t('autocuidado_movement')}
               </Text>
               <Text style={[
                 styles.trackerSubtitle,
                 movedToday && styles.movementSubtitleActive,
               ]}>
-                {movedToday ? '¡Te moviste hoy!' : 'Toca si te moviste hoy'}
+                {movedToday ? t('autocuidado_moved_today') : t('autocuidado_tap_moved')}
               </Text>
             </View>
             {movedToday && (
@@ -233,7 +235,7 @@ export const AutocuidadoScreen: React.FC<AutocuidadoScreenProps> = ({ navigation
 
           {!movedToday && (
             <Text style={styles.movementHint}>
-              Cualquier cosa cuenta: caminar, estirar, bailar...
+              {t('autocuidado_movement_hint')}
             </Text>
           )}
         </TouchableOpacity>
@@ -242,7 +244,7 @@ export const AutocuidadoScreen: React.FC<AutocuidadoScreenProps> = ({ navigation
         <View style={styles.tipCard}>
           <Ionicons name="leaf" size={18} color={colors.primary} />
           <Text style={styles.tipText}>
-            No necesitas ser perfecto. Solo intenta un poco mejor que ayer.
+            {t('autocuidado_tip')}
           </Text>
         </View>
 

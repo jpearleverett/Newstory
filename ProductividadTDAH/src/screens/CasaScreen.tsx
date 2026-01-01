@@ -3,28 +3,29 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, enUS } from 'date-fns/locale';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
 import { Card, Button, Input, CheckBox } from '../components';
 import { useData, HomeTask } from '../context/DataContext';
+import { useLanguage } from '../i18n/LanguageContext';
 
-const rooms = [
-  { id: 'cocina', name: 'Cocina', icon: 'restaurant-outline' },
-  { id: 'sala', name: 'Sala', icon: 'tv-outline' },
-  { id: 'dormitorio', name: 'Dormitorio', icon: 'bed-outline' },
-  { id: 'bano', name: 'Baño', icon: 'water-outline' },
-  { id: 'oficina', name: 'Oficina', icon: 'desktop-outline' },
-  { id: 'general', name: 'General', icon: 'home-outline' },
-];
+const roomIds = [
+  { id: 'cocina', nameKey: 'room_kitchen', icon: 'restaurant-outline' },
+  { id: 'sala', nameKey: 'room_living', icon: 'tv-outline' },
+  { id: 'dormitorio', nameKey: 'room_bedroom', icon: 'bed-outline' },
+  { id: 'bano', nameKey: 'room_bathroom', icon: 'water-outline' },
+  { id: 'oficina', nameKey: 'room_office', icon: 'desktop-outline' },
+  { id: 'general', nameKey: 'room_general', icon: 'home-outline' },
+] as const;
 
-const defaultTasks = {
-  cocina: ['Lavar platos', 'Limpiar mesones', 'Barrer/trapear', 'Sacar basura'],
-  sala: ['Ordenar cojines', 'Sacudir muebles', 'Aspirar/barrer', 'Organizar control remoto'],
-  dormitorio: ['Hacer la cama', 'Recoger ropa', 'Ordenar mesita de noche', 'Ventilar habitación'],
-  bano: ['Limpiar espejo', 'Limpiar lavabo', 'Limpiar inodoro', 'Lavar toallas'],
-  oficina: ['Ordenar escritorio', 'Organizar cables', 'Limpiar pantalla', 'Archivar papeles'],
-  general: ['Regar plantas', 'Revisar correo', 'Sacar mascotas', 'Vaciar papeleras'],
-};
+const defaultTaskKeys = {
+  cocina: ['task_wash_dishes', 'task_clean_counters', 'task_sweep_mop', 'task_take_trash'],
+  sala: ['task_arrange_pillows', 'task_dust_furniture', 'task_vacuum_sweep', 'task_organize_remote'],
+  dormitorio: ['task_make_bed', 'task_pick_clothes', 'task_organize_nightstand', 'task_ventilate_room'],
+  bano: ['task_clean_mirror', 'task_clean_sink', 'task_clean_toilet', 'task_wash_towels'],
+  oficina: ['task_organize_desk', 'task_organize_cables', 'task_clean_screen', 'task_file_papers'],
+  general: ['task_water_plants', 'task_check_mail', 'task_walk_pets', 'task_empty_bins'],
+} as const;
 
 interface CasaScreenProps {
   navigation: any;
@@ -32,13 +33,24 @@ interface CasaScreenProps {
 
 export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
   const { data, addHomeTask, toggleHomeTaskDay, deleteHomeTask } = useData();
+  const { t, language } = useLanguage();
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState(rooms[0]);
+  const [selectedRoom, setSelectedRoom] = useState(roomIds[0]);
   const [newTaskName, setNewTaskName] = useState('');
   const [taskFrequency, setTaskFrequency] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [simplificationDay, setSimplificationDay] = useState(1);
 
   const today = format(new Date(), 'yyyy-MM-dd');
+  const dateLocale = language === 'es' ? es : enUS;
+
+  // Helper to get room with translated name
+  const getRoomWithTranslation = (room: typeof roomIds[number]) => ({
+    ...room,
+    name: t(room.nameKey as any),
+  });
+
+  // Get all rooms with translated names
+  const rooms = roomIds.map(getRoomWithTranslation);
 
   const handleAddTask = async () => {
     if (!newTaskName.trim()) return;
@@ -68,38 +80,11 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
     return Math.round((completed / dailyTasks.length) * 100);
   };
 
-  const simplificationChallenge = [
-    'Elige un cajón y saca todo. Solo guarda lo que usas.',
-    'Revisa tu closet y dona 5 prendas que no uses.',
-    'Organiza tu nevera y tira lo vencido.',
-    'Limpia debajo del fregadero.',
-    'Ordena tu escritorio y desecha papeles viejos.',
-    'Organiza los productos del baño.',
-    'Revisa los libros y dona los que no leerás.',
-    'Limpia un estante o repisa completa.',
-    'Organiza los cables y cargadores.',
-    'Revisa la despensa y organiza por categorías.',
-    'Limpia las ventanas de una habitación.',
-    'Organiza tu mesa de noche.',
-    'Revisa medicamentos y tira los vencidos.',
-    'Ordena los zapatos.',
-    'Limpia el microondas y horno.',
-    'Organiza las bolsas y mochilas.',
-    'Revisa los juguetes o decoraciones.',
-    'Limpia los espejos de la casa.',
-    'Organiza documentos importantes.',
-    'Limpia el refrigerador por fuera.',
-    'Ordena las sábanas y toallas.',
-    'Revisa las plantas y poda si es necesario.',
-    'Organiza productos de limpieza.',
-    'Limpia las manijas de puertas.',
-    'Ordena la entrada de casa.',
-    'Revisa y organiza herramientas.',
-    'Limpia los interruptores de luz.',
-    'Organiza los accesorios de cocina.',
-    'Revisa las decoraciones y simplifica.',
-    'Celebra tu progreso. ¡Lo lograste!',
-  ];
+  // Get the challenge text for the current day
+  const getChallenge = (day: number) => {
+    const key = `challenge_${day}` as any;
+    return t(key);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -110,8 +95,8 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.title}>Mi Casa</Text>
-            <Text style={styles.subtitle}>Organización del hogar</Text>
+            <Text style={styles.title}>{t('casa_title')}</Text>
+            <Text style={styles.subtitle}>{t('casa_subtitle')}</Text>
           </View>
           <TouchableOpacity onPress={() => setShowAddModal(true)} style={styles.addButton}>
             <Ionicons name="add-circle" size={32} color={colors.casa} />
@@ -122,8 +107,8 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
         <Card variant="elevated" style={styles.progressCard}>
           <View style={styles.progressHeader}>
             <View>
-              <Text style={styles.progressTitle}>Progreso de Hoy</Text>
-              <Text style={styles.progressDate}>{format(new Date(), "EEEE, d 'de' MMMM", { locale: es })}</Text>
+              <Text style={styles.progressTitle}>{t('casa_today_progress')}</Text>
+              <Text style={styles.progressDate}>{format(new Date(), language === 'es' ? "EEEE, d 'de' MMMM" : "EEEE, MMMM d", { locale: dateLocale })}</Text>
             </View>
             <View style={styles.progressCircle}>
               <Text style={styles.progressPercent}>{getTodayProgress()}%</Text>
@@ -135,9 +120,9 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
         <Card style={styles.challengeCard}>
           <View style={styles.challengeHeader}>
             <Ionicons name="sparkles" size={24} color={colors.white} />
-            <Text style={styles.challengeTitle}>Reto 30 Días</Text>
+            <Text style={styles.challengeTitle}>{t('casa_challenge_title')}</Text>
           </View>
-          <Text style={styles.challengeSubtitle}>Simplifica tu hogar</Text>
+          <Text style={styles.challengeSubtitle}>{t('casa_challenge_subtitle')}</Text>
 
           <View style={styles.daySelector}>
             <TouchableOpacity
@@ -147,7 +132,7 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
               <Ionicons name="chevron-back" size={24} color={colors.white} />
             </TouchableOpacity>
             <View style={styles.dayDisplay}>
-              <Text style={styles.dayNumber}>Día {simplificationDay}</Text>
+              <Text style={styles.dayNumber}>{t('casa_day', { number: simplificationDay })}</Text>
               <Text style={styles.dayOf}>/30</Text>
             </View>
             <TouchableOpacity
@@ -159,15 +144,15 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
           </View>
 
           <Text style={styles.challengeTask}>
-            {simplificationChallenge[simplificationDay - 1]}
+            {getChallenge(simplificationDay)}
           </Text>
         </Card>
 
         {/* Rooms */}
-        <Text style={styles.sectionTitle}>Habitaciones</Text>
+        <Text style={styles.sectionTitle}>{t('casa_rooms')}</Text>
         {rooms.map((room) => {
           const roomTasks = getTasksForRoom(room.id);
-          const completedCount = roomTasks.filter(t => isTaskCompletedToday(t)).length;
+          const completedCount = roomTasks.filter(task => isTaskCompletedToday(task)).length;
 
           return (
             <Card key={room.id} variant="elevated" style={styles.roomCard}>
@@ -178,13 +163,14 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
                 <View style={styles.roomInfo}>
                   <Text style={styles.roomName}>{room.name}</Text>
                   <Text style={styles.roomProgress}>
-                    {completedCount}/{roomTasks.length} tareas hoy
+                    {t('casa_tasks_today', { completed: completedCount, total: roomTasks.length })}
                   </Text>
                 </View>
                 <TouchableOpacity
                   style={styles.addRoomTask}
                   onPress={() => {
-                    setSelectedRoom(room);
+                    const roomId = roomIds.find(r => r.id === room.id);
+                    if (roomId) setSelectedRoom(roomId);
                     setShowAddModal(true);
                   }}
                 >
@@ -204,7 +190,7 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
                       />
                       <View style={styles.frequencyBadge}>
                         <Text style={styles.frequencyText}>
-                          {task.frequency === 'daily' ? 'D' : task.frequency === 'weekly' ? 'S' : 'M'}
+                          {task.frequency === 'daily' ? 'D' : task.frequency === 'weekly' ? 'W' : 'M'}
                         </Text>
                       </View>
                     </View>
@@ -212,7 +198,7 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
                 </View>
               ) : (
                 <Text style={styles.noTasksText}>
-                  Sin tareas. Toca + para agregar
+                  {t('casa_no_tasks')}
                 </Text>
               )}
             </Card>
@@ -221,18 +207,18 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
 
         {/* Quick Add Default Tasks */}
         <Card style={styles.quickAddCard}>
-          <Text style={styles.quickAddTitle}>¿Necesitas ideas?</Text>
+          <Text style={styles.quickAddTitle}>{t('casa_need_ideas')}</Text>
           <Text style={styles.quickAddDescription}>
-            Toca una habitación arriba y agrega tareas sugeridas:
+            {t('casa_ideas_desc')}
           </Text>
           <View style={styles.suggestedTasks}>
-            {Object.entries(defaultTasks).slice(0, 3).map(([room, tasks]) => (
+            {Object.entries(defaultTaskKeys).slice(0, 3).map(([room, taskKeys]) => (
               <View key={room} style={styles.suggestedRoom}>
                 <Text style={styles.suggestedRoomName}>
                   {rooms.find(r => r.id === room)?.name}:
                 </Text>
                 <Text style={styles.suggestedTasksList}>
-                  {tasks.slice(0, 2).join(', ')}...
+                  {taskKeys.slice(0, 2).map(key => t(key as any)).join(', ')}...
                 </Text>
               </View>
             ))}
@@ -243,14 +229,10 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
         <Card style={styles.tipsCard}>
           <View style={styles.tipsHeader}>
             <Ionicons name="bulb" size={20} color={colors.orange} />
-            <Text style={styles.tipsTitle}>Tips para TDAH</Text>
+            <Text style={styles.tipsTitle}>{t('casa_adhd_tips')}</Text>
           </View>
           <Text style={styles.tipsText}>
-            • Haz una sola tarea a la vez{'\n'}
-            • Pon un temporizador de 15 minutos{'\n'}
-            • No busques la perfección{'\n'}
-            • Celebra cada pequeño avance{'\n'}
-            • Si te abrumas, para y respira
+            {t('casa_adhd_tips_content')}
           </Text>
         </Card>
       </ScrollView>
@@ -261,8 +243,8 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Nueva Tarea</Text>
-                <Text style={styles.modalSubtitle}>{selectedRoom.name}</Text>
+                <Text style={styles.modalTitle}>{t('casa_new_task')}</Text>
+                <Text style={styles.modalSubtitle}>{t(selectedRoom.nameKey as any)}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowAddModal(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
@@ -271,7 +253,7 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
 
             {/* Room Selector */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.roomsScroll}>
-              {rooms.map((room) => (
+              {roomIds.map((room) => (
                 <TouchableOpacity
                   key={room.id}
                   style={[
@@ -289,25 +271,25 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
                     styles.roomChipText,
                     selectedRoom.id === room.id && { color: colors.white },
                   ]}>
-                    {room.name}
+                    {t(room.nameKey as any)}
                   </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
             <Input
-              label="Tarea"
-              placeholder="Ej: Lavar los platos"
+              label={t('casa_task_label')}
+              placeholder={t('casa_task_placeholder')}
               value={newTaskName}
               onChangeText={setNewTaskName}
             />
 
-            <Text style={styles.frequencyLabel}>Frecuencia</Text>
+            <Text style={styles.frequencyLabel}>{t('casa_frequency')}</Text>
             <View style={styles.frequencyOptions}>
               {[
-                { value: 'daily', label: 'Diaria' },
-                { value: 'weekly', label: 'Semanal' },
-                { value: 'monthly', label: 'Mensual' },
+                { value: 'daily', labelKey: 'casa_daily' },
+                { value: 'weekly', labelKey: 'casa_weekly' },
+                { value: 'monthly', labelKey: 'casa_monthly' },
               ].map((option) => (
                 <TouchableOpacity
                   key={option.value}
@@ -321,28 +303,28 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
                     styles.frequencyOptionText,
                     taskFrequency === option.value && { color: colors.white },
                   ]}>
-                    {option.label}
+                    {t(option.labelKey as any)}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             {/* Suggested Tasks */}
-            <Text style={styles.suggestedLabel}>Sugerencias para {selectedRoom.name}:</Text>
+            <Text style={styles.suggestedLabel}>{t('casa_suggestions_for', { room: t(selectedRoom.nameKey as any) })}</Text>
             <View style={styles.suggestedButtons}>
-              {(defaultTasks[selectedRoom.id as keyof typeof defaultTasks] || []).map((task, index) => (
+              {(defaultTaskKeys[selectedRoom.id as keyof typeof defaultTaskKeys] || []).map((taskKey, index) => (
                 <TouchableOpacity
                   key={index}
                   style={styles.suggestedButton}
-                  onPress={() => setNewTaskName(task)}
+                  onPress={() => setNewTaskName(t(taskKey as any))}
                 >
-                  <Text style={styles.suggestedButtonText}>{task}</Text>
+                  <Text style={styles.suggestedButtonText}>{t(taskKey as any)}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             <Button
-              title="Agregar Tarea"
+              title={t('casa_add_task')}
               onPress={handleAddTask}
               variant="primary"
               color={colors.casa}
