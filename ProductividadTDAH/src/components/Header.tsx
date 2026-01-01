@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, fontSize, fontWeight, shadows } from '../styles/theme';
+import { colors, spacing, fontSize, fontWeight } from '../styles/theme';
 
 interface HeaderProps {
   title: string;
@@ -21,24 +21,24 @@ export const Header: React.FC<HeaderProps> = ({
   showBack = false,
   onBack,
   rightAction,
-  color = colors.primary, // Default to primary instead of olive
+  color = colors.olive,
 }) => {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { borderBottomColor: color }]}>
       <View style={styles.leftSection}>
         {showBack && (
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={26} color={colors.textDark} />
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
         )}
         <View>
-          <Text style={[styles.title, { color: colors.textDark }]}>{title}</Text>
+          <Text style={styles.title}>{title}</Text>
           {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
         </View>
       </View>
       {rightAction && (
         <TouchableOpacity onPress={rightAction.onPress} style={styles.rightButton}>
-          <Ionicons name={rightAction.icon} size={26} color={color} />
+          <Ionicons name={rightAction.icon} size={24} color={color} />
         </TouchableOpacity>
       )}
     </View>
@@ -50,11 +50,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     backgroundColor: colors.background,
-    // Removed borderBottomWidth for a cleaner look
-    zIndex: 10,
+    borderBottomWidth: 2,
   },
   leftSection: {
     flexDirection: 'row',
@@ -67,19 +66,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
-    letterSpacing: -0.5,
+    color: colors.textDark,
   },
   subtitle: {
     fontSize: fontSize.sm,
     color: colors.textLight,
     marginTop: 2,
-    fontWeight: fontWeight.medium,
   },
   rightButton: {
     padding: spacing.xs,
-    backgroundColor: colors.backgroundLight,
-    borderRadius: 50,
-    padding: 8,
-    ...shadows.xs,
   },
 });
