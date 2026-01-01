@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, SafeAreaView, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
 import { Card, Button, Input, CheckBox } from '../components';
 import { useData, HomeTask } from '../context/DataContext';
@@ -121,7 +122,7 @@ export const CasaScreen: React.FC<CasaScreenProps> = ({ navigation }) => {
           <View style={styles.progressHeader}>
             <View>
               <Text style={styles.progressTitle}>Progreso de Hoy</Text>
-              <Text style={styles.progressDate}>{format(new Date(), "EEEE, d 'de' MMMM", { locale: require('date-fns/locale/es').es })}</Text>
+              <Text style={styles.progressDate}>{format(new Date(), "EEEE, d 'de' MMMM", { locale: es })}</Text>
             </View>
             <View style={styles.progressCircle}>
               <Text style={styles.progressPercent}>{getTodayProgress()}%</Text>

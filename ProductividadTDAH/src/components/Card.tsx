@@ -5,7 +5,6 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-  interpolate,
 } from 'react-native-reanimated';
 import { colors, spacing, borderRadius, shadows, animation } from '../styles/theme';
 import haptic from '../utils/haptics';

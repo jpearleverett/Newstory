@@ -1,12 +1,9 @@
-import React, { useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, SafeAreaView, Dimensions } from 'react-native';
+import React from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, SafeAreaView } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
-  withDelay,
-  withSequence,
   FadeInDown,
   FadeInUp,
 } from 'react-native-reanimated';
@@ -14,8 +11,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows, animation } from '../styles/theme';
 import haptic from '../utils/haptics';
-
-const { width } = Dimensions.get('window');
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface SectionItem {
