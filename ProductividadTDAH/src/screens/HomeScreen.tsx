@@ -17,7 +17,7 @@ import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '..
 import { useData, DailyEntry } from '../context/DataContext';
 import { useLanguage } from '../i18n/LanguageContext';
 import haptic from '../utils/haptics';
-import { MorningRitualModal } from '../components';
+import { MorningRitualModal, BrainDumpModal } from '../components';
 
 interface HomeScreenProps {
   navigation: any;
@@ -47,6 +47,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [newTask, setNewTask] = useState('');
   const [showCheckin, setShowCheckin] = useState(true);
   const [showMorningModal, setShowMorningModal] = useState(false);
+  const [showBrainDumpModal, setShowBrainDumpModal] = useState(false);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -123,6 +124,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       });
       
       haptic.success();
+  };
+
+  const handleBrainDumpSubmit = async (items: string[]) => {
+    if (items.length > 0) {
+      await addBrainDump(items);
+      const updatedDump = [...(entry.dump || []), ...items];
+      await saveEntry({ dump: updatedDump });
+      haptic.success();
+    }
   };
 
   const handleMoodSelect = (value: number) => {
@@ -433,10 +443,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </Animated.View>
       </ScrollView>
 
+      {/* FAB for Brain Dump */}
+      <TouchableOpacity 
+        style={styles.fab}
+        onPress={() => setShowBrainDumpModal(true)}
+      >
+        <Ionicons name="bulb" size={28} color={colors.white} />
+      </TouchableOpacity>
+
       <MorningRitualModal 
         visible={showMorningModal}
         onClose={() => setShowMorningModal(false)}
         onComplete={handleMorningComplete}
+      />
+      
+      <BrainDumpModal
+        visible={showBrainDumpModal}
+        onClose={() => setShowBrainDumpModal(false)}
+        onSubmit={handleBrainDumpSubmit}
       />
     </SafeAreaView>
   );
@@ -451,7 +475,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: spacing.xxl + 20,
+    paddingBottom: spacing.xxl + 80, // Extra padding for FAB
   },
   header: {
     flexDirection: 'row',
@@ -780,5 +804,18 @@ const styles = StyleSheet.create({
   expandText: {
     fontSize: fontSize.sm,
     color: colors.textLight,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: spacing.xl,
+    right: spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.pink,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.lg,
+    zIndex: 100,
   },
 });

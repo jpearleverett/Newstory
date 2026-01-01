@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Modal, StyleSheet, TouchableOpacity, Dimensions, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -11,16 +11,18 @@ interface FocusTimerModalProps {
   projectName: string;
 }
 
+const { width } = Dimensions.get('window');
+
 export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ visible, onClose, projectName }) => {
   const { t } = useLanguage();
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
+  const INITIAL_TIME = 25 * 60;
+  const [timeLeft, setTimeLeft] = useState(INITIAL_TIME);
   const [isActive, setIsActive] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (visible) {
-      // Reset when opening
-      setTimeLeft(25 * 60);
+      setTimeLeft(INITIAL_TIME);
       setIsActive(false);
     }
     return () => {
@@ -34,7 +36,6 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ visible, onClo
         setTimeLeft((prev) => prev - 1);
       }, 1000);
     } else if (timeLeft === 0) {
-      // Timer finished
       setIsActive(false);
       haptic.success();
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -55,7 +56,7 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ visible, onClo
   const resetTimer = () => {
     haptic.light();
     setIsActive(false);
-    setTimeLeft(25 * 60);
+    setTimeLeft(INITIAL_TIME);
   };
 
   const formatTime = (seconds: number) => {
@@ -64,44 +65,81 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ visible, onClo
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const progress = timeLeft / (25 * 60);
+  const progress = timeLeft / INITIAL_TIME;
+  
+  // Dynamic color based on progress
+  const getProgressColor = () => {
+    if (progress > 0.6) return colors.success; // Green > 60%
+    if (progress > 0.3) return colors.warning; // Yellow > 30%
+    return colors.error; // Red < 30%
+  };
+
+  const currentColor = getProgressColor();
 
   return (
-    <Modal visible={visible} animationType="fade" transparent>
-      <View style={styles.modalOverlay}>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.projectName} numberOfLines={1}>{projectName}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={24} color={colors.white} />
-            </TouchableOpacity>
+    <Modal visible={visible} animationType="slide" transparent={false}>
+      <StatusBar hidden={true} />
+      <View style={[styles.container, { backgroundColor: '#121212' }]}> {/* Immersive Dark Mode */}
+        
+        {/* Top Controls */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <Ionicons name="chevron-down" size={32} color={colors.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('focus_mode')}</Text>
+          <View style={{ width: 32 }} /> 
+        </View>
+
+        {/* Main Content */}
+        <View style={styles.content}>
+          <Text style={styles.projectName} numberOfLines={2}>
+            {projectName || t('focus_default_task')}
+          </Text>
+          
+          {/* Visual Timer Indicator */}
+          <View style={[styles.timerContainer, { borderColor: currentColor }]}>
+            <Text style={[styles.timerText, { color: currentColor }]}>
+              {formatTime(timeLeft)}
+            </Text>
+            <Text style={styles.statusText}>
+              {isActive ? t('focusing') : t('paused')}
+            </Text>
           </View>
 
-          <View style={styles.timerCircle}>
-            <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
-            <Text style={styles.statusText}>{isActive ? t('focusing') : t('paused')}</Text>
+          {/* Progress Bar */}
+          <View style={styles.progressBarContainer}>
+            <View 
+              style={[
+                styles.progressBarFill, 
+                { 
+                  width: `${progress * 100}%`,
+                  backgroundColor: currentColor
+                }
+              ]} 
+            />
           </View>
 
-          {/* Progress Bar Background */}
-          <View style={styles.progressContainer}>
-             <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
-          </View>
-
+          {/* Controls */}
           <View style={styles.controls}>
+             <TouchableOpacity style={styles.resetBtn} onPress={resetTimer}>
+              <Ionicons name="refresh" size={28} color={colors.textMuted} />
+            </TouchableOpacity>
+
             <TouchableOpacity 
-                style={[styles.controlBtn, isActive ? styles.pauseBtn : styles.playBtn]} 
+                style={[styles.playBtn, { backgroundColor: isActive ? colors.textMuted : currentColor }]} 
                 onPress={toggleTimer}
             >
-              <Ionicons name={isActive ? "pause" : "play"} size={32} color={colors.white} />
+              <Ionicons name={isActive ? "pause" : "play"} size={48} color={isActive ? '#121212' : colors.white} />
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.resetBtn} onPress={resetTimer}>
-              <Ionicons name="refresh" size={24} color={colors.white} />
-            </TouchableOpacity>
+            <View style={{ width: 48 }} /> {/* Spacer for balance */}
           </View>
-          
+        </View>
+
+        {/* Motivational Tip */}
+        <View style={styles.footer}>
           <Text style={styles.tipText}>
-              {t('focus_tip')}
+            {isActive ? "Respira. Una cosa a la vez." : "Listo para empezar?"}
           </Text>
         </View>
       </View>
@@ -110,108 +148,102 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ visible, onClo
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)', // Darker overlay for focus
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
   container: {
-    width: '100%',
-    backgroundColor: colors.backgroundDark, // Slightly darker bg
-    borderRadius: borderRadius.xl,
-    padding: spacing.xl,
-    alignItems: 'center',
-    ...shadows.lg,
+    flex: 1,
+    padding: spacing.lg,
+    justifyContent: 'space-between',
   },
   header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      width: '100%',
-      marginBottom: spacing.xl,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: spacing.lg,
   },
-  projectName: {
-      fontSize: fontSize.lg,
-      color: colors.text,
-      fontWeight: fontWeight.bold,
-      flex: 1,
-      marginRight: spacing.md,
+  headerTitle: {
+    color: colors.textMuted,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.medium,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
   },
   closeBtn: {
-      backgroundColor: colors.textLight,
-      borderRadius: borderRadius.round,
-      padding: 4,
+    padding: spacing.xs,
   },
-  timerCircle: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  projectName: {
+    fontSize: fontSize.xl,
+    color: colors.white,
+    textAlign: 'center',
+    marginBottom: spacing.xxl,
+    opacity: 0.9,
+    fontWeight: fontWeight.bold,
+  },
+  timerContainer: {
+    width: width * 0.75,
+    height: width * 0.75,
+    borderRadius: (width * 0.75) / 2,
     borderWidth: 8,
-    borderColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.xl,
-    backgroundColor: colors.white,
+    backgroundColor: '#1E1E1E',
   },
   timerText: {
-    fontSize: 48,
+    fontSize: 72,
     fontWeight: fontWeight.bold,
-    color: colors.textDark,
     fontVariant: ['tabular-nums'],
   },
   statusText: {
-      fontSize: fontSize.sm,
-      color: colors.textLight,
-      marginTop: spacing.xs,
-      textTransform: 'uppercase',
-      letterSpacing: 1,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontSize: fontSize.sm,
   },
-  progressContainer: {
-      width: '100%',
-      height: 6,
-      backgroundColor: colors.backgroundMuted,
-      borderRadius: borderRadius.round,
-      marginBottom: spacing.xl,
-      overflow: 'hidden',
+  progressBarContainer: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#333',
+    borderRadius: borderRadius.round,
+    marginBottom: spacing.xxl,
+    overflow: 'hidden',
   },
-  progressBar: {
-      height: '100%',
-      backgroundColor: colors.primary,
+  progressBarFill: {
+    height: '100%',
+    borderRadius: borderRadius.round,
   },
   controls: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xl,
-      marginBottom: spacing.lg,
-  },
-  controlBtn: {
-      width: 72,
-      height: 72,
-      borderRadius: 36,
-      justifyContent: 'center',
-      alignItems: 'center',
-      ...shadows.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xl,
+    width: '100%',
   },
   playBtn: {
-      backgroundColor: colors.primary,
-  },
-  pauseBtn: {
-      backgroundColor: colors.orange,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.lg,
   },
   resetBtn: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.textLight,
-      justifyContent: 'center',
-      alignItems: 'center',
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  footer: {
+    paddingBottom: spacing.xl,
+    alignItems: 'center',
   },
   tipText: {
-      textAlign: 'center',
-      color: colors.textLight,
-      fontStyle: 'italic',
-      marginTop: spacing.md,
-  }
+    color: colors.textMuted,
+    fontSize: fontSize.md,
+    fontStyle: 'italic',
+  },
 });

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
-import { Card, Button, Input, CheckBox } from '../components';
+import { Card, Button, Input, CheckBox, BrainDumpModal } from '../components';
 import { useData, EisenhowerTask } from '../context/DataContext';
 
 interface PriorizacionScreenProps {
@@ -51,7 +51,12 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
   const [showBrainDumpModal, setShowBrainDumpModal] = useState(false);
   const [selectedQuadrant, setSelectedQuadrant] = useState(quadrants[0]);
   const [newTaskText, setNewTaskText] = useState('');
-  const [brainDumpText, setBrainDumpText] = useState('');
+
+  // Wizard State
+  const [showWizard, setShowWizard] = useState(false);
+  const [wizardStep, setWizardStep] = useState(0); // 0: Input, 1: Urgent?, 2: Important?
+  const [wizardTask, setWizardTask] = useState('');
+  const [isUrgent, setIsUrgent] = useState(false);
 
   const getTasksForQuadrant = (quadrantId: string) => {
     return data.eisenhowerTasks.filter(t => t.quadrant === quadrantId);
@@ -70,18 +75,48 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
     setShowAddModal(false);
   };
 
-  const handleBrainDump = async () => {
-    if (!brainDumpText.trim()) return;
-
-    const items = brainDumpText.split('\n').filter(item => item.trim() !== '');
-    await addBrainDump(items);
-
-    setBrainDumpText('');
-    setShowBrainDumpModal(false);
+  const handleBrainDumpSubmit = async (items: string[]) => {
+    if (items.length > 0) {
+      await addBrainDump(items);
+    }
   };
 
   const toggleTaskCompletion = async (task: EisenhowerTask) => {
     await updateEisenhowerTask(task.id, { completed: !task.completed });
+  };
+
+  // Wizard Logic
+  const startWizard = () => {
+    setWizardStep(0);
+    setWizardTask('');
+    setIsUrgent(false);
+    setShowWizard(true);
+  };
+
+  const handleWizardNext = () => {
+    if (wizardStep === 0 && !wizardTask.trim()) return;
+    setWizardStep(wizardStep + 1);
+  };
+
+  const handleWizardUrgency = (urgent: boolean) => {
+    setIsUrgent(urgent);
+    setWizardStep(2);
+  };
+
+  const handleWizardImportance = async (important: boolean) => {
+    let quadrantId = '';
+    if (isUrgent && important) quadrantId = 'urgent-important';
+    else if (!isUrgent && important) quadrantId = 'not-urgent-important';
+    else if (isUrgent && !important) quadrantId = 'urgent-not-important';
+    else quadrantId = 'not-urgent-not-important';
+
+    await addEisenhowerTask({
+        text: wizardTask,
+        quadrant: quadrantId as EisenhowerTask['quadrant'],
+        completed: false,
+    });
+
+    setShowWizard(false);
   };
 
   const renderQuadrant = (quadrant: typeof quadrants[0]) => {
@@ -167,6 +202,21 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
           </View>
         </View>
 
+        {/* Wizard Button - NEW FEATURE */}
+        <TouchableOpacity
+            style={styles.wizardButton}
+            onPress={startWizard}
+        >
+            <View style={styles.wizardIconContainer}>
+                <Ionicons name="magic-wand" size={24} color={colors.white} />
+            </View>
+            <View style={styles.wizardTextContainer}>
+                <Text style={styles.wizardTitle}>¿No sabes por dónde empezar?</Text>
+                <Text style={styles.wizardSubtitle}>Usa el asistente mágico de priorización</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={colors.primary} />
+        </TouchableOpacity>
+
         {/* Brain Dump Quick Action */}
         <TouchableOpacity
           style={styles.brainDumpButton}
@@ -180,21 +230,6 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
           <Ionicons name="add-circle" size={28} color={colors.white} />
         </TouchableOpacity>
 
-        {/* Explanation Card */}
-        <Card style={styles.explanationCard}>
-          <View style={styles.explanationHeader}>
-            <Ionicons name="information-circle" size={24} color={colors.priorizacion} />
-            <Text style={styles.explanationTitle}>¿Cómo usar la Matriz?</Text>
-          </View>
-          <Text style={styles.explanationText}>
-            Clasifica tus tareas según su urgencia e importancia:{'\n\n'}
-            <Text style={{ fontWeight: 'bold', color: colors.error }}>Hacer:</Text> Hazlo ahora{'\n'}
-            <Text style={{ fontWeight: 'bold', color: colors.olive }}>Programar:</Text> Agenda un tiempo{'\n'}
-            <Text style={{ fontWeight: 'bold', color: colors.warning }}>Delegar:</Text> ¿Quién puede ayudar?{'\n'}
-            <Text style={{ fontWeight: 'bold', color: colors.textLight }}>Eliminar:</Text> ¿Realmente necesitas hacerlo?
-          </Text>
-        </Card>
-
         {/* Eisenhower Matrix */}
         <View style={styles.matrixContainer}>
           <View style={styles.matrixRow}>
@@ -207,39 +242,91 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
           </View>
         </View>
 
-        {/* Recent Brain Dumps */}
-        {data.brainDumps.length > 0 && (
-          <Card variant="elevated" style={styles.recentDumpsCard}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="cloud" size={20} color={colors.pink} />
-              <Text style={styles.sectionTitle}>Brain Dumps Recientes</Text>
-            </View>
-            {data.brainDumps.slice(-3).reverse().map((dump, index) => (
-              <View key={dump.id} style={styles.dumpItem}>
-                <Text style={styles.dumpDate}>
-                  {new Date(dump.date).toLocaleDateString('es-ES')}
-                </Text>
-                <Text style={styles.dumpPreview} numberOfLines={2}>
-                  {dump.items.join(' • ')}
-                </Text>
-              </View>
-            ))}
-          </Card>
-        )}
-
-        {/* Tips */}
-        <Card style={styles.tipsCard}>
-          <View style={styles.tipsHeader}>
-            <Ionicons name="bulb" size={20} color={colors.orange} />
-            <Text style={styles.tipsTitle}>Tip para TDAH</Text>
-          </View>
-          <Text style={styles.tipsText}>
-            Con TDAH, todo puede sentirse urgente. Tómate un momento para preguntar:
-            "¿Qué pasa si no hago esto hoy?". Si la respuesta es "nada grave", probablemente
-            no es urgente.
-          </Text>
+        {/* Explanation Card */}
+        <Card style={styles.explanationCard}>
+            <Text style={styles.explanationText}>
+            <Text style={{ fontWeight: 'bold', color: colors.error }}>Hacer:</Text> Hazlo ahora{'\n'}
+            <Text style={{ fontWeight: 'bold', color: colors.olive }}>Programar:</Text> Agenda un tiempo{'\n'}
+            <Text style={{ fontWeight: 'bold', color: colors.warning }}>Delegar:</Text> ¿Quién puede ayudar?{'\n'}
+            <Text style={{ fontWeight: 'bold', color: colors.textLight }}>Eliminar:</Text> ¿Realmente necesitas hacerlo?
+            </Text>
         </Card>
       </ScrollView>
+
+      {/* Wizard Modal */}
+      <Modal visible={showWizard} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Asistente Mágico ✨</Text>
+                    <TouchableOpacity onPress={() => setShowWizard(false)}>
+                        <Ionicons name="close" size={24} color={colors.text} />
+                    </TouchableOpacity>
+                </View>
+
+                {wizardStep === 0 && (
+                    <View>
+                        <Text style={styles.wizardQuestion}>¿Qué tarea tienes en mente?</Text>
+                        <Input
+                            placeholder="Ej: Enviar reporte mensual"
+                            value={wizardTask}
+                            onChangeText={setWizardTask}
+                            autoFocus
+                        />
+                        <Button
+                            title="Siguiente"
+                            onPress={handleWizardNext}
+                            disabled={!wizardTask.trim()}
+                            style={{ marginTop: spacing.lg }}
+                        />
+                    </View>
+                )}
+
+                {wizardStep === 1 && (
+                    <View>
+                        <Text style={styles.wizardQuestion}>¿Tiene una fecha límite cercana (hoy/mañana)?</Text>
+                        <View style={styles.wizardActions}>
+                            <Button 
+                                title="Sí, es urgente" 
+                                onPress={() => handleWizardUrgency(true)} 
+                                variant="outline" 
+                                style={{ flex: 1 }}
+                            />
+                            <View style={{ width: spacing.md }} />
+                            <Button 
+                                title="No, puede esperar" 
+                                onPress={() => handleWizardUrgency(false)} 
+                                variant="outline" 
+                                style={{ flex: 1 }}
+                            />
+                        </View>
+                    </View>
+                )}
+
+                {wizardStep === 2 && (
+                    <View>
+                        <Text style={styles.wizardQuestion}>¿Tiene consecuencias graves si no se hace?</Text>
+                        <Text style={styles.wizardSubQuestion}>¿Te acerca a tus metas a largo plazo?</Text>
+                        <View style={styles.wizardActions}>
+                            <Button 
+                                title="Sí, es importante" 
+                                onPress={() => handleWizardImportance(true)} 
+                                variant="primary" 
+                                style={{ flex: 1 }}
+                            />
+                            <View style={{ width: spacing.md }} />
+                            <Button 
+                                title="No tanto" 
+                                onPress={() => handleWizardImportance(false)} 
+                                variant="secondary" 
+                                style={{ flex: 1 }}
+                            />
+                        </View>
+                    </View>
+                )}
+              </View>
+          </View>
+      </Modal>
 
       {/* Add Task Modal */}
       <Modal visible={showAddModal} animationType="slide" transparent>
@@ -312,43 +399,11 @@ export const PriorizacionScreen: React.FC<PriorizacionScreenProps> = ({ navigati
         </View>
       </Modal>
 
-      {/* Brain Dump Modal */}
-      <Modal visible={showBrainDumpModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>Brain Dump</Text>
-                <Text style={styles.modalSubtitle}>Vacía tu mente</Text>
-              </View>
-              <TouchableOpacity onPress={() => setShowBrainDumpModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.modalDescription}>
-              Escribe todo lo que está en tu cabeza, sin filtrar ni juzgar.
-              Cada línea será un item separado.
-            </Text>
-
-            <Input
-              placeholder="Escribe aquí todo lo que está en tu mente...&#10;Una idea por línea"
-              value={brainDumpText}
-              onChangeText={setBrainDumpText}
-              multiline
-              containerStyle={{ flex: 1 }}
-            />
-
-            <Button
-              title="Guardar Brain Dump"
-              onPress={handleBrainDump}
-              variant="primary"
-              color={colors.pink}
-              style={styles.modalButton}
-            />
-          </View>
-        </View>
-      </Modal>
+      <BrainDumpModal
+        visible={showBrainDumpModal}
+        onClose={() => setShowBrainDumpModal(false)}
+        onSubmit={handleBrainDumpSubmit}
+      />
     </SafeAreaView>
   );
 };
@@ -384,12 +439,63 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textLight,
   },
+  wizardButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 2,
+    borderColor: colors.primary + '40',
+    ...shadows.sm,
+  },
+  wizardIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  wizardTextContainer: {
+    flex: 1,
+  },
+  wizardTitle: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: colors.textDark,
+  },
+  wizardSubtitle: {
+    fontSize: fontSize.xs,
+    color: colors.textLight,
+  },
+  wizardQuestion: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.textDark,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+  },
+  wizardSubQuestion: {
+    fontSize: fontSize.sm,
+    color: colors.textLight,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+    marginTop: -spacing.sm,
+  },
+  wizardActions: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+  },
   brainDumpButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.pink,
     marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
     padding: spacing.md,
     borderRadius: borderRadius.lg,
     ...shadows.sm,
@@ -411,6 +517,7 @@ const styles = StyleSheet.create({
   explanationCard: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,
+    marginBottom: spacing.lg,
   },
   explanationHeader: {
     flexDirection: 'row',

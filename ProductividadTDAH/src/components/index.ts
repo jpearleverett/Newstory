@@ -6,3 +6,4 @@ export { ProgressBar } from './ProgressBar';
 export { CheckBox } from './CheckBox';
 export { MorningRitualModal } from './MorningRitualModal';
 export { FocusTimerModal } from './FocusTimerModal';
+export { BrainDumpModal } from './BrainDumpModal';
