@@ -1,7 +1,22 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, SafeAreaView, Dimensions } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  withDelay,
+  withSequence,
+  FadeInDown,
+  FadeInUp,
+} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
+import { colors, spacing, fontSize, fontWeight, borderRadius, shadows, animation } from '../styles/theme';
+import haptic from '../utils/haptics';
+
+const { width } = Dimensions.get('window');
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface SectionItem {
   id: string;
@@ -14,46 +29,6 @@ interface SectionItem {
 
 const sections: SectionItem[] = [
   {
-    id: 'tuano',
-    title: 'Tu Año',
-    subtitle: 'Calendarios e intenciones anuales',
-    icon: 'calendar-outline',
-    color: colors.tuAno,
-    screen: 'TuAno',
-  },
-  {
-    id: 'metas',
-    title: 'Metas',
-    subtitle: 'Objetivos y seguimiento de hábitos',
-    icon: 'flag-outline',
-    color: colors.metas,
-    screen: 'Metas',
-  },
-  {
-    id: 'autoconocimiento',
-    title: 'Autoconocimiento',
-    subtitle: 'Reflexión y crecimiento personal',
-    icon: 'heart-outline',
-    color: colors.autoconocimiento,
-    screen: 'Autoconocimiento',
-  },
-  {
-    id: 'priorizacion',
-    title: 'Priorización',
-    subtitle: 'Matriz Eisenhower y brain dump',
-    icon: 'grid-outline',
-    color: colors.priorizacion,
-    screen: 'Priorizacion',
-  },
-  {
-    id: 'proyectos',
-    title: 'Planificador de Proyectos',
-    subtitle: 'Gestión de proyectos y tiempo',
-    icon: 'folder-outline',
-    color: colors.proyectos,
-    screen: 'Proyectos',
-  },
-  {
     id: 'diario',
     title: 'Planificador Diario',
     subtitle: 'Método DOPA y tareas diarias',
@@ -62,17 +37,57 @@ const sections: SectionItem[] = [
     screen: 'Diario',
   },
   {
+    id: 'metas',
+    title: 'Metas',
+    subtitle: 'Objetivos y hábitos',
+    icon: 'flag-outline',
+    color: colors.metas,
+    screen: 'Metas',
+  },
+  {
+    id: 'priorizacion',
+    title: 'Priorización',
+    subtitle: 'Matriz Eisenhower',
+    icon: 'grid-outline',
+    color: colors.priorizacion,
+    screen: 'Priorizacion',
+  },
+  {
+    id: 'tuano',
+    title: 'Tu Año',
+    subtitle: 'Calendarios e intenciones',
+    icon: 'calendar-outline',
+    color: colors.tuAno,
+    screen: 'TuAno',
+  },
+  {
+    id: 'proyectos',
+    title: 'Proyectos',
+    subtitle: 'Gestión de proyectos',
+    icon: 'folder-outline',
+    color: colors.proyectos,
+    screen: 'Proyectos',
+  },
+  {
+    id: 'autoconocimiento',
+    title: 'Autoconocimiento',
+    subtitle: 'Reflexión personal',
+    icon: 'heart-outline',
+    color: colors.autoconocimiento,
+    screen: 'Autoconocimiento',
+  },
+  {
     id: 'casa',
-    title: 'Planificador de Casa',
-    subtitle: 'Organización y limpieza del hogar',
+    title: 'Mi Casa',
+    subtitle: 'Organización del hogar',
     icon: 'home-outline',
     color: colors.casa,
     screen: 'Casa',
   },
   {
     id: 'dinero',
-    title: 'TDAH y el Dinero',
-    subtitle: 'Gastos, ahorros y finanzas',
+    title: 'Finanzas',
+    subtitle: 'Gastos y ahorros',
     icon: 'wallet-outline',
     color: colors.dinero,
     screen: 'Dinero',
@@ -80,7 +95,7 @@ const sections: SectionItem[] = [
   {
     id: 'autocuidado',
     title: 'Autocuidado',
-    subtitle: 'Bienestar, comidas y ejercicio',
+    subtitle: 'Bienestar y salud',
     icon: 'leaf-outline',
     color: colors.autocuidado,
     screen: 'Autocuidado',
@@ -91,77 +106,176 @@ interface HomeScreenProps {
   navigation: any;
 }
 
+const SectionCard: React.FC<{
+  section: SectionItem;
+  index: number;
+  onPress: () => void;
+}> = ({ section, index, onPress }) => {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.95, animation.springBouncy);
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, animation.spring);
+  };
+
+  const handlePress = () => {
+    haptic.light();
+    onPress();
+  };
+
+  return (
+    <Animated.View
+      entering={FadeInDown.delay(100 + index * 50).springify()}
+    >
+      <AnimatedPressable
+        style={[styles.sectionCard, animatedStyle]}
+        onPress={handlePress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+      >
+        <View style={[styles.iconContainer, { backgroundColor: section.color + '18' }]}>
+          <Ionicons name={section.icon} size={26} color={section.color} />
+        </View>
+        <View style={styles.sectionContent}>
+          <Text style={styles.sectionTitle}>{section.title}</Text>
+          <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
+        </View>
+        <View style={[styles.chevronContainer, { backgroundColor: section.color + '12' }]}>
+          <Ionicons name="chevron-forward" size={18} color={section.color} />
+        </View>
+      </AnimatedPressable>
+    </Animated.View>
+  );
+};
+
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const today = new Date();
   const dayName = today.toLocaleDateString('es-ES', { weekday: 'long' });
   const dateString = today.toLocaleDateString('es-ES', {
     day: 'numeric',
     month: 'long',
-    year: 'numeric'
   });
 
-  const renderSectionCard = (section: SectionItem) => (
-    <TouchableOpacity
-      key={section.id}
-      style={[styles.sectionCard, { borderLeftColor: section.color }]}
-      onPress={() => navigation.navigate(section.screen)}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.iconContainer, { backgroundColor: section.color + '20' }]}>
-        <Ionicons name={section.icon} size={28} color={section.color} />
-      </View>
-      <View style={styles.sectionContent}>
-        <Text style={styles.sectionTitle}>{section.title}</Text>
-        <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
-    </TouchableOpacity>
-  );
+  const heroScale = useSharedValue(1);
+
+  const heroAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: heroScale.value }],
+  }));
+
+  const handleHeroPressIn = () => {
+    heroScale.value = withSpring(0.98, animation.spring);
+  };
+
+  const handleHeroPressOut = () => {
+    heroScale.value = withSpring(1, animation.spring);
+  };
+
+  const handleHeroPress = () => {
+    haptic.medium();
+    navigation.navigate('Diario');
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Header */}
-        <View style={styles.header}>
+        <Animated.View
+          style={styles.header}
+          entering={FadeInUp.delay(50).springify()}
+        >
           <View style={styles.logoContainer}>
-            <Text style={styles.logo}>Productividad</Text>
-            <Text style={styles.logoAccent}>TDAH</Text>
+            <Text style={styles.logoTotally}>Totally</Text>
+            <Text style={styles.logoTDAH}>TDAH</Text>
           </View>
-          <Text style={styles.tagline}>Tu agenda digital para una vida más organizada</Text>
-        </View>
+          <Text style={styles.tagline}>Tu vida, a tu ritmo</Text>
+        </Animated.View>
 
-        {/* Date Card */}
-        <View style={styles.dateCard}>
-          <Text style={styles.dayName}>{dayName.charAt(0).toUpperCase() + dayName.slice(1)}</Text>
-          <Text style={styles.dateString}>{dateString}</Text>
-          <TouchableOpacity
-            style={styles.quickActionButton}
-            onPress={() => navigation.navigate('Diario')}
+        {/* Hero Card - Today's Plan */}
+        <Animated.View entering={FadeInDown.delay(100).springify()}>
+          <AnimatedPressable
+            onPress={handleHeroPress}
+            onPressIn={handleHeroPressIn}
+            onPressOut={handleHeroPressOut}
+            style={heroAnimatedStyle}
           >
-            <Ionicons name="add-circle" size={20} color={colors.white} />
-            <Text style={styles.quickActionText}>Planificar mi día</Text>
-          </TouchableOpacity>
-        </View>
+            <LinearGradient
+              colors={colors.gradients.hero}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroCard}
+            >
+              <View style={styles.heroContent}>
+                <View style={styles.heroDateContainer}>
+                  <Text style={styles.heroDayName}>
+                    {dayName.charAt(0).toUpperCase() + dayName.slice(1)}
+                  </Text>
+                  <Text style={styles.heroDate}>{dateString}</Text>
+                </View>
 
-        {/* ADHD Friendly Reminder */}
-        <View style={styles.reminderCard}>
-          <Ionicons name="sparkles" size={24} color={colors.orange} />
-          <Text style={styles.reminderText}>
-            Recuerda: No tienes que hacerlo todo hoy. Elige 1-3 tareas importantes y celebra cada pequeño logro.
+                <View style={styles.heroActionContainer}>
+                  <View style={styles.heroIconCircle}>
+                    <Ionicons name="add" size={28} color={colors.primary} />
+                  </View>
+                  <View>
+                    <Text style={styles.heroActionTitle}>Planificar mi día</Text>
+                    <Text style={styles.heroActionSubtitle}>Método DOPA</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Decorative elements */}
+              <View style={styles.heroDecor1} />
+              <View style={styles.heroDecor2} />
+            </LinearGradient>
+          </AnimatedPressable>
+        </Animated.View>
+
+        {/* Motivational Quote */}
+        <Animated.View
+          style={styles.quoteContainer}
+          entering={FadeInDown.delay(150).springify()}
+        >
+          <View style={styles.quoteIcon}>
+            <Ionicons name="sparkles" size={18} color={colors.accent} />
+          </View>
+          <Text style={styles.quoteText}>
+            No tienes que hacerlo todo. Elige 1-3 cosas importantes y celebra cada pequeño paso.
           </Text>
-        </View>
+        </Animated.View>
 
-        {/* Sections */}
-        <Text style={styles.sectionsTitle}>Secciones</Text>
-        <View style={styles.sectionsContainer}>
-          {sections.map(renderSectionCard)}
+        {/* Sections Grid */}
+        <Text style={styles.sectionsTitle}>Explora</Text>
+        <View style={styles.sectionsGrid}>
+          {sections.map((section, index) => (
+            <SectionCard
+              key={section.id}
+              section={section}
+              index={index}
+              onPress={() => navigation.navigate(section.screen)}
+            />
+          ))}
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
+        <Animated.View
+          style={styles.footer}
+          entering={FadeInUp.delay(600).springify()}
+        >
+          <View style={styles.footerDivider} />
           <Text style={styles.footerText}>TotallyTDAH.com</Text>
           <Text style={styles.footerSubtext}>Reduciendo Estigmas LLC</Text>
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -174,109 +288,155 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    paddingBottom: spacing.xxl,
   },
   header: {
-    padding: spacing.lg,
-    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
+    paddingBottom: spacing.md,
+    alignItems: 'center',
   },
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
-  logo: {
-    fontSize: fontSize.xxl,
-    fontWeight: fontWeight.bold,
-    color: colors.olive,
+  logoTotally: {
+    fontSize: fontSize.xxxl,
+    fontWeight: fontWeight.heavy,
+    color: colors.primary,
+    letterSpacing: -1,
   },
-  logoAccent: {
-    fontSize: fontSize.xl,
+  logoTDAH: {
+    fontSize: fontSize.xxl,
     fontWeight: fontWeight.bold,
     color: colors.pink,
     marginLeft: spacing.xs,
+    letterSpacing: 1,
   },
   tagline: {
-    fontSize: fontSize.sm,
+    fontSize: fontSize.md,
     color: colors.textLight,
     marginTop: spacing.xs,
-    textAlign: 'center',
+    letterSpacing: 0.5,
   },
-  dateCard: {
-    backgroundColor: colors.olive,
+  heroCard: {
     marginHorizontal: spacing.lg,
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    alignItems: 'center',
-    ...shadows.md,
+    marginTop: spacing.md,
+    borderRadius: borderRadius.xxl,
+    padding: spacing.xl,
+    overflow: 'hidden',
+    ...shadows.lg,
   },
-  dayName: {
+  heroContent: {
+    zIndex: 1,
+  },
+  heroDateContainer: {
+    marginBottom: spacing.lg,
+  },
+  heroDayName: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.medium,
     color: colors.white,
     opacity: 0.9,
   },
-  dateString: {
-    fontSize: fontSize.xl,
+  heroDate: {
+    fontSize: fontSize.xxl,
     fontWeight: fontWeight.bold,
     color: colors.white,
-    marginTop: spacing.xs,
+    marginTop: 2,
   },
-  quickActionButton: {
+  heroActionContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.round,
-    marginTop: spacing.md,
   },
-  quickActionText: {
-    color: colors.white,
+  heroIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+    ...shadows.sm,
+  },
+  heroActionTitle: {
+    fontSize: fontSize.lg,
     fontWeight: fontWeight.semibold,
-    marginLeft: spacing.xs,
+    color: colors.white,
   },
-  reminderCard: {
+  heroActionSubtitle: {
+    fontSize: fontSize.sm,
+    color: colors.white,
+    opacity: 0.8,
+  },
+  heroDecor1: {
+    position: 'absolute',
+    top: -30,
+    right: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  heroDecor2: {
+    position: 'absolute',
+    bottom: -40,
+    right: 40,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  quoteContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.orangeLight + '40',
+    alignItems: 'flex-start',
+    backgroundColor: colors.accentLight + '30',
     marginHorizontal: spacing.lg,
     marginTop: spacing.lg,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     padding: spacing.md,
   },
-  reminderText: {
+  quoteIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.accentLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm,
+  },
+  quoteText: {
     flex: 1,
-    marginLeft: spacing.sm,
     fontSize: fontSize.sm,
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: fontSize.sm * 1.6,
   },
   sectionsTitle: {
-    fontSize: fontSize.lg,
+    fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
     color: colors.textDark,
     marginHorizontal: spacing.lg,
     marginTop: spacing.xl,
     marginBottom: spacing.md,
   },
-  sectionsContainer: {
+  sectionsGrid: {
     paddingHorizontal: spacing.lg,
   },
   sectionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: borderRadius.lg,
+    backgroundColor: colors.backgroundLight,
+    borderRadius: borderRadius.xl,
     padding: spacing.md,
     marginBottom: spacing.sm,
-    borderLeftWidth: 4,
     ...shadows.sm,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.md,
+    width: 50,
+    height: 50,
+    borderRadius: borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -288,25 +448,40 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
     color: colors.textDark,
+    letterSpacing: 0.2,
   },
   sectionSubtitle: {
     fontSize: fontSize.sm,
     color: colors.textLight,
     marginTop: 2,
   },
+  chevronContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   footer: {
     alignItems: 'center',
-    padding: spacing.xl,
-    marginTop: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.lg,
+  },
+  footerDivider: {
+    width: 40,
+    height: 3,
+    backgroundColor: colors.backgroundDark,
+    borderRadius: 2,
+    marginBottom: spacing.lg,
   },
   footerText: {
-    fontSize: fontSize.sm,
+    fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
-    color: colors.olive,
+    color: colors.primary,
   },
   footerSubtext: {
     fontSize: fontSize.xs,
-    color: colors.textLight,
+    color: colors.textMuted,
     marginTop: 2,
   },
 });

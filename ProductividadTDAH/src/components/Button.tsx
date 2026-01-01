@@ -1,6 +1,16 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator } from 'react-native';
-import { colors, spacing, borderRadius, fontSize, fontWeight } from '../styles/theme';
+import { Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator, Pressable } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, spacing, borderRadius, fontSize, fontWeight, shadows, animation } from '../styles/theme';
+import haptic from '../utils/haptics';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface ButtonProps {
   title: string;
@@ -8,11 +18,15 @@ interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
   size?: 'small' | 'medium' | 'large';
   color?: string;
+  gradientColors?: [string, string];
   disabled?: boolean;
   loading?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
   icon?: React.ReactNode;
+  iconPosition?: 'left' | 'right';
+  fullWidth?: boolean;
+  hapticFeedback?: boolean;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -20,27 +34,70 @@ export const Button: React.FC<ButtonProps> = ({
   onPress,
   variant = 'primary',
   size = 'medium',
-  color = colors.olive,
+  color = colors.primary,
+  gradientColors,
   disabled = false,
   loading = false,
   style,
   textStyle,
   icon,
+  iconPosition = 'left',
+  fullWidth = true,
+  hapticFeedback = true,
 }) => {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.96, animation.springBouncy);
+    opacity.value = withTiming(0.9, { duration: animation.fast });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, animation.spring);
+    opacity.value = withTiming(1, { duration: animation.fast });
+  };
+
+  const handlePress = () => {
+    if (hapticFeedback) {
+      haptic.medium();
+    }
+    onPress();
+  };
+
+  const sizeStyles = {
+    small: { paddingVertical: spacing.sm + 2, paddingHorizontal: spacing.md + 4 },
+    medium: { paddingVertical: spacing.md, paddingHorizontal: spacing.xl },
+    large: { paddingVertical: spacing.lg - 4, paddingHorizontal: spacing.xxl },
+  };
+
+  const textSizeStyles = {
+    small: { fontSize: fontSize.sm },
+    medium: { fontSize: fontSize.md },
+    large: { fontSize: fontSize.lg },
+  };
+
   const buttonStyles = [
     styles.base,
-    styles[size],
-    variant === 'primary' && { backgroundColor: color },
+    sizeStyles[size],
+    fullWidth && styles.fullWidth,
+    variant === 'primary' && !gradientColors && { backgroundColor: color },
     variant === 'secondary' && { backgroundColor: colors.backgroundDark },
     variant === 'outline' && { backgroundColor: 'transparent', borderWidth: 2, borderColor: color },
     variant === 'ghost' && { backgroundColor: 'transparent' },
+    variant === 'primary' && shadows.sm,
     disabled && styles.disabled,
     style,
   ];
 
   const textStyles = [
     styles.text,
-    styles[`${size}Text`],
+    textSizeStyles[size],
     variant === 'primary' && { color: colors.white },
     variant === 'secondary' && { color: colors.text },
     variant === 'outline' && { color: color },
@@ -49,22 +106,55 @@ export const Button: React.FC<ButtonProps> = ({
     textStyle,
   ];
 
-  return (
-    <TouchableOpacity
-      style={buttonStyles}
-      onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.7}
-    >
+  const content = (
+    <>
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? colors.white : color} />
+        <ActivityIndicator
+          color={variant === 'primary' ? colors.white : color}
+          size={size === 'small' ? 'small' : 'small'}
+        />
       ) : (
         <>
-          {icon}
+          {icon && iconPosition === 'left' && icon}
           <Text style={textStyles}>{title}</Text>
+          {icon && iconPosition === 'right' && icon}
         </>
       )}
-    </TouchableOpacity>
+    </>
+  );
+
+  // Use gradient for primary buttons if gradientColors provided
+  if (variant === 'primary' && gradientColors && !disabled) {
+    return (
+      <AnimatedPressable
+        onPress={handlePress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={disabled || loading}
+        style={[animatedStyle, fullWidth && styles.fullWidth]}
+      >
+        <LinearGradient
+          colors={gradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[styles.base, sizeStyles[size], shadows.sm, style, styles.gradient]}
+        >
+          {content}
+        </LinearGradient>
+      </AnimatedPressable>
+    );
+  }
+
+  return (
+    <AnimatedPressable
+      style={[buttonStyles, animatedStyle]}
+      onPress={handlePress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      disabled={disabled || loading}
+    >
+      {content}
+    </AnimatedPressable>
   );
 };
 
@@ -73,32 +163,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     gap: spacing.sm,
   },
-  small: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+  fullWidth: {
+    width: '100%',
   },
-  medium: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  large: {
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
+  gradient: {
+    borderRadius: borderRadius.xl,
   },
   text: {
     fontWeight: fontWeight.semibold,
-  },
-  smallText: {
-    fontSize: fontSize.sm,
-  },
-  mediumText: {
-    fontSize: fontSize.md,
-  },
-  largeText: {
-    fontSize: fontSize.lg,
+    letterSpacing: 0.3,
   },
   disabled: {
     opacity: 0.5,

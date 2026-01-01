@@ -1,6 +1,7 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { colors } from '../styles/theme';
 import {
   HomeScreen,
   TuAnoScreen,
@@ -29,16 +30,42 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+// Custom theme matching app colors
+const AppTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: colors.primary,
+    background: colors.background,
+    card: colors.backgroundLight,
+    text: colors.text,
+    border: colors.backgroundDark,
+    notification: colors.accent,
+  },
+};
+
 export const AppNavigator: React.FC = () => {
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={AppTheme}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
+          animationDuration: 250,
+          gestureEnabled: true,
+          gestureDirection: 'horizontal',
+          contentStyle: {
+            backgroundColor: colors.background,
+          },
         }}
       >
-        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{
+            animation: 'fade',
+          }}
+        />
         <Stack.Screen name="TuAno" component={TuAnoScreen} />
         <Stack.Screen name="Metas" component={MetasScreen} />
         <Stack.Screen name="Autoconocimiento" component={AutoconocimientoScreen} />
