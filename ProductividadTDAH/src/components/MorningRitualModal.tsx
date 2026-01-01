@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, Modal, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
-import { Button } from './Button'; // Assuming Button component exists
+import { Button } from './Button';
 import haptic from '../utils/haptics';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface MorningRitualModalProps {
   visible: boolean;
@@ -14,6 +15,7 @@ interface MorningRitualModalProps {
 type Step = 'dump' | 'organize' | 'plan' | 'ready';
 
 export const MorningRitualModal: React.FC<MorningRitualModalProps> = ({ visible, onClose, onComplete }) => {
+  const { t } = useLanguage();
   const [step, setStep] = useState<Step>('dump');
   const [dumpInput, setDumpInput] = useState('');
   const [dumpItems, setDumpItems] = useState<string[]>([]);
@@ -68,15 +70,15 @@ export const MorningRitualModal: React.FC<MorningRitualModalProps> = ({ visible,
             <View style={styles.headerIcon}>
               <Ionicons name="cloud-outline" size={48} color={colors.primary} />
             </View>
-            <Text style={styles.stepTitle}>Paso 1: Vaciar (Dump)</Text>
+            <Text style={styles.stepTitle}>{t('ritual_step1_title')}</Text>
             <Text style={styles.stepDesc}>
-              Saca todo de tu cabeza. Tareas, preocupaciones, ideas. No lo juzgues, solo escríbelo.
+              {t('ritual_step1_desc')}
             </Text>
             
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
-                placeholder="Escribe algo y presiona enter..."
+                placeholder={t('ritual_input_placeholder')}
                 value={dumpInput}
                 onChangeText={setDumpInput}
                 onSubmitEditing={handleDumpAdd}
@@ -97,7 +99,7 @@ export const MorningRitualModal: React.FC<MorningRitualModalProps> = ({ visible,
             </ScrollView>
             
             <Button 
-              title={dumpItems.length > 0 ? "Listo, a organizar" : "Saltar si está vacío"} 
+              title={dumpItems.length > 0 ? t('ritual_ready_organize') : t('ritual_skip')} 
               onPress={() => setStep('organize')} 
               variant="primary"
               style={styles.actionButton}
@@ -111,9 +113,9 @@ export const MorningRitualModal: React.FC<MorningRitualModalProps> = ({ visible,
             <View style={styles.headerIcon}>
               <Ionicons name="list-outline" size={48} color={colors.orange} />
             </View>
-            <Text style={styles.stepTitle}>Paso 2: Organizar</Text>
+            <Text style={styles.stepTitle}>{t('ritual_step2_title')}</Text>
             <Text style={styles.stepDesc}>
-              De tu lista, ¿qué es REALMENTE para hoy? Selecciona solo lo que quieras considerar.
+              {t('ritual_step2_desc')}
             </Text>
 
             <ScrollView style={styles.listContainer}>
@@ -134,12 +136,12 @@ export const MorningRitualModal: React.FC<MorningRitualModalProps> = ({ visible,
                 </TouchableOpacity>
               ))}
               {dumpItems.length === 0 && (
-                <Text style={styles.emptyText}>No agregaste nada en el paso anterior.</Text>
+                <Text style={styles.emptyText}>{t('ritual_empty_dump')}</Text>
               )}
             </ScrollView>
 
             <Button 
-              title="Siguiente: Planificar" 
+              title={t('ritual_next_plan')} 
               onPress={() => setStep('plan')} 
               variant="primary"
               style={styles.actionButton}
@@ -153,11 +155,11 @@ export const MorningRitualModal: React.FC<MorningRitualModalProps> = ({ visible,
             <View style={styles.headerIcon}>
               <Ionicons name="sunny-outline" size={48} color={colors.highlight} />
             </View>
-            <Text style={styles.stepTitle}>Paso 3: Planificar (Top 3)</Text>
+            <Text style={styles.stepTitle}>{t('ritual_step3_title')}</Text>
             <Text style={styles.stepDesc}>
-              Elige MÁXIMO 3 tareas para hoy. Si haces estas 3, tu día es un éxito.
+              {t('ritual_step3_desc')}
             </Text>
-             <Text style={styles.counterText}>{finalTasks.length}/3 seleccionadas</Text>
+             <Text style={styles.counterText}>{t('ritual_selected_count', { count: finalTasks.length })}</Text>
 
             <ScrollView style={styles.listContainer}>
               {selectedForToday.map((item, idx) => (
@@ -175,12 +177,12 @@ export const MorningRitualModal: React.FC<MorningRitualModalProps> = ({ visible,
                 </TouchableOpacity>
               ))}
                {selectedForToday.length === 0 && (
-                <Text style={styles.emptyText}>No seleccionaste nada para hoy. ¡Día libre!</Text>
+                <Text style={styles.emptyText}>{t('ritual_no_selection')}</Text>
               )}
             </ScrollView>
 
             <Button 
-              title="¡A Actuar!" 
+              title={t('ritual_act')} 
               onPress={() => {
                 onComplete(finalTasks, dumpItems);
                 onClose();

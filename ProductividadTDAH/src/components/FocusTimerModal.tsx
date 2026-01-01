@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Modal, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
-import { Button } from './Button';
+import { useLanguage } from '../i18n/LanguageContext';
 import haptic from '../utils/haptics';
 
 interface FocusTimerModalProps {
@@ -12,6 +12,7 @@ interface FocusTimerModalProps {
 }
 
 export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ visible, onClose, projectName }) => {
+  const { t } = useLanguage();
   const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
   const [isActive, setIsActive] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -78,7 +79,7 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ visible, onClo
 
           <View style={styles.timerCircle}>
             <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
-            <Text style={styles.statusText}>{isActive ? 'Enfocando...' : 'Pausado'}</Text>
+            <Text style={styles.statusText}>{isActive ? t('focusing') : t('paused')}</Text>
           </View>
 
           {/* Progress Bar Background */}
@@ -100,7 +101,7 @@ export const FocusTimerModal: React.FC<FocusTimerModalProps> = ({ visible, onClo
           </View>
           
           <Text style={styles.tipText}>
-              "No tienes que terminarlo todo, solo trabaja estos 25 minutos."
+              {t('focus_tip')}
           </Text>
         </View>
       </View>
