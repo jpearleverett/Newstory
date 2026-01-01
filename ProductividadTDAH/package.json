@@ -33,8 +33,11 @@
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",
-    "@types/react": "~19.0.0",
+    "@types/react": "~19.1.0",
     "typescript": "^5.7.0"
+  },
+  "overrides": {
+    "@types/react": "~19.1.0"
   },
   "private": true
 }
