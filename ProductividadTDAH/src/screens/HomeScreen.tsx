@@ -1,9 +1,12 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, SafeAreaView, Animated } from 'react-native';
+import React, { useRef, useEffect, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, SafeAreaView, Animated, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows, animation } from '../styles/theme';
 import haptic from '../utils/haptics';
+
+const { width } = Dimensions.get('window');
+const COLUMN_WIDTH = (width - spacing.lg * 2 - spacing.md) / 2;
 
 interface SectionItem {
   id: string;
@@ -12,86 +15,77 @@ interface SectionItem {
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
   screen: string;
+  gradient?: [string, string];
 }
 
+// Removed Diario, Metas, Priorizacion as they are in tabs
 const sections: SectionItem[] = [
-  {
-    id: 'diario',
-    title: 'Planificador Diario',
-    subtitle: 'Método DOPA y tareas diarias',
-    icon: 'today-outline',
-    color: colors.diario,
-    screen: 'Diario',
-  },
-  {
-    id: 'metas',
-    title: 'Metas',
-    subtitle: 'Objetivos y hábitos',
-    icon: 'flag-outline',
-    color: colors.metas,
-    screen: 'Metas',
-  },
-  {
-    id: 'priorizacion',
-    title: 'Priorización',
-    subtitle: 'Matriz Eisenhower',
-    icon: 'grid-outline',
-    color: colors.priorizacion,
-    screen: 'Priorizacion',
-  },
   {
     id: 'tuano',
     title: 'Tu Año',
-    subtitle: 'Calendarios e intenciones',
-    icon: 'calendar-outline',
+    subtitle: 'Visión anual',
+    icon: 'calendar',
     color: colors.tuAno,
     screen: 'TuAno',
+    gradient: colors.gradients.primary
   },
   {
     id: 'proyectos',
     title: 'Proyectos',
-    subtitle: 'Gestión de proyectos',
-    icon: 'folder-outline',
+    subtitle: 'Gestión',
+    icon: 'folder-open',
     color: colors.proyectos,
     screen: 'Proyectos',
+    gradient: ['#9B59B6', '#8E44AD']
   },
   {
     id: 'autoconocimiento',
-    title: 'Autoconocimiento',
-    subtitle: 'Reflexión personal',
-    icon: 'heart-outline',
+    title: 'Explorar',
+    subtitle: 'Reflexión',
+    icon: 'heart',
     color: colors.autoconocimiento,
     screen: 'Autoconocimiento',
+    gradient: colors.gradients.accent
   },
   {
     id: 'casa',
     title: 'Mi Casa',
-    subtitle: 'Organización del hogar',
-    icon: 'home-outline',
+    subtitle: 'Hogar',
+    icon: 'home',
     color: colors.casa,
     screen: 'Casa',
+    gradient: ['#D35400', '#E67E22']
   },
   {
     id: 'dinero',
     title: 'Finanzas',
-    subtitle: 'Gastos y ahorros',
-    icon: 'wallet-outline',
+    subtitle: 'Control',
+    icon: 'wallet',
     color: colors.dinero,
     screen: 'Dinero',
+    gradient: ['#1ABC9C', '#16A085']
   },
   {
     id: 'autocuidado',
-    title: 'Autocuidado',
-    subtitle: 'Bienestar y salud',
-    icon: 'leaf-outline',
+    title: 'Salud',
+    subtitle: 'Bienestar',
+    icon: 'leaf',
     color: colors.autocuidado,
     screen: 'Autocuidado',
+    gradient: colors.gradients.rose
   },
 ];
 
 interface HomeScreenProps {
   navigation: any;
 }
+
+const StreakBadge = () => (
+  <View style={styles.streakBadge}>
+    <Ionicons name="flame" size={16} color={colors.orange} />
+    <Text style={styles.streakText}>3 días</Text>
+  </View>
+);
 
 const SectionCard: React.FC<{
   section: SectionItem;
@@ -104,8 +98,8 @@ const SectionCard: React.FC<{
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 300,
-      delay: index * 50,
+      duration: 400,
+      delay: index * 50 + 300,
       useNativeDriver: true,
     }).start();
   }, []);
@@ -125,7 +119,7 @@ const SectionCard: React.FC<{
   };
 
   const handlePress = () => {
-    haptic.light();
+    haptic.selection();
     onPress();
   };
 
@@ -142,24 +136,21 @@ const SectionCard: React.FC<{
             }),
           },
         ],
+        width: COLUMN_WIDTH,
+        marginBottom: spacing.md,
       }}
     >
       <Pressable
-        style={styles.sectionCard}
+        style={[styles.sectionCard, { backgroundColor: colors.white }]}
         onPress={handlePress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
       >
-        <View style={[styles.iconContainer, { backgroundColor: section.color + '18' }]}>
-          <Ionicons name={section.icon} size={26} color={section.color} />
+        <View style={[styles.iconContainer, { backgroundColor: section.color + '20' }]}>
+          <Ionicons name={section.icon} size={28} color={section.color} />
         </View>
-        <View style={styles.sectionContent}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
-          <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
-        </View>
-        <View style={[styles.chevronContainer, { backgroundColor: section.color + '12' }]}>
-          <Ionicons name="chevron-forward" size={18} color={section.color} />
-        </View>
+        <Text style={styles.sectionTitle}>{section.title}</Text>
+        <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -176,23 +167,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const heroScaleAnim = useRef(new Animated.Value(1)).current;
   const headerFadeAnim = useRef(new Animated.Value(0)).current;
   const heroFadeAnim = useRef(new Animated.Value(0)).current;
-  const quoteFadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.stagger(100, [
       Animated.timing(headerFadeAnim, {
         toValue: 1,
-        duration: 400,
+        duration: 500,
         useNativeDriver: true,
       }),
       Animated.timing(heroFadeAnim, {
         toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.timing(quoteFadeAnim, {
-        toValue: 1,
-        duration: 400,
+        duration: 500,
         useNativeDriver: true,
       }),
     ]).start();
@@ -241,11 +226,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             },
           ]}
         >
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoTotally}>Totally</Text>
-            <Text style={styles.logoTDAH}>TDAH</Text>
+          <View style={styles.headerTop}>
+            <View style={styles.logoContainer}>
+              <Text style={styles.logoTotally}>Totally</Text>
+              <Text style={styles.logoTDAH}>TDAH</Text>
+            </View>
+            <StreakBadge />
           </View>
-          <Text style={styles.tagline}>Tu vida, a tu ritmo</Text>
+          <Text style={styles.greeting}>¡Hola! ¿Qué tal tu energía hoy?</Text>
         </Animated.View>
 
         {/* Hero Card - Today's Plan */}
@@ -269,7 +257,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             onPressOut={handleHeroPressOut}
           >
             <LinearGradient
-              colors={colors.gradients.hero}
+              colors={colors.gradients.primary}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.heroCard}
@@ -284,11 +272,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
                 <View style={styles.heroActionContainer}>
                   <View style={styles.heroIconCircle}>
-                    <Ionicons name="add" size={28} color={colors.primary} />
+                    <Ionicons name="add" size={32} color={colors.primary} />
                   </View>
                   <View>
                     <Text style={styles.heroActionTitle}>Planificar mi día</Text>
-                    <Text style={styles.heroActionSubtitle}>Método DOPA</Text>
+                    <Text style={styles.heroActionSubtitle}>Comenzar con DOPA</Text>
                   </View>
                 </View>
               </View>
@@ -296,37 +284,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               {/* Decorative elements */}
               <View style={styles.heroDecor1} />
               <View style={styles.heroDecor2} />
+              <Ionicons name="leaf" size={120} color="rgba(255,255,255,0.1)" style={styles.heroDecorIcon} />
             </LinearGradient>
           </Pressable>
         </Animated.View>
 
-        {/* Motivational Quote */}
-        <Animated.View
-          style={[
-            styles.quoteContainer,
-            {
-              opacity: quoteFadeAnim,
-              transform: [
-                {
-                  translateY: quoteFadeAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [20, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <View style={styles.quoteIcon}>
-            <Ionicons name="sparkles" size={18} color={colors.accent} />
-          </View>
-          <Text style={styles.quoteText}>
-            No tienes que hacerlo todo. Elige 1-3 cosas importantes y celebra cada pequeño paso.
-          </Text>
-        </Animated.View>
-
         {/* Sections Grid */}
-        <Text style={styles.sectionsTitle}>Explora</Text>
+        <View style={styles.sectionHeaderContainer}>
+            <Text style={styles.sectionsTitle}>Áreas de Vida</Text>
+        </View>
+        
         <View style={styles.sectionsGrid}>
           {sections.map((section, index) => (
             <SectionCard
@@ -338,11 +305,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           ))}
         </View>
 
-        {/* Footer */}
+        {/* Dopamine Footer */}
         <View style={styles.footer}>
-          <View style={styles.footerDivider} />
-          <Text style={styles.footerText}>TotallyTDAH.com</Text>
-          <Text style={styles.footerSubtext}>Reduciendo Estigmas LLC</Text>
+          <Text style={styles.footerText}>Recuerda: Un paso a la vez</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -358,42 +323,61 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.xxl + 20,
   },
   header: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.md,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: spacing.xs,
   },
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
   logoTotally: {
-    fontSize: fontSize.xxxl,
+    fontSize: fontSize.xl,
     fontWeight: fontWeight.heavy,
     color: colors.primary,
-    letterSpacing: -1,
+    letterSpacing: -0.5,
   },
   logoTDAH: {
-    fontSize: fontSize.xxl,
+    fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
     color: colors.pink,
     marginLeft: spacing.xs,
-    letterSpacing: 1,
   },
-  tagline: {
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.highlightLight + '80',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.round,
+    gap: 4,
+  },
+  streakText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.textDark,
+  },
+  greeting: {
     fontSize: fontSize.md,
     color: colors.textLight,
     marginTop: spacing.xs,
-    letterSpacing: 0.5,
   },
   heroCard: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,
-    borderRadius: borderRadius.xxl,
+    borderRadius: borderRadius.xl,
     padding: spacing.xl,
+    minHeight: 160,
+    justifyContent: 'space-between',
     overflow: 'hidden',
     ...shadows.lg,
   },
@@ -404,152 +388,115 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   heroDayName: {
-    fontSize: fontSize.lg,
+    fontSize: fontSize.md,
     fontWeight: fontWeight.medium,
     color: colors.white,
     opacity: 0.9,
   },
   heroDate: {
-    fontSize: fontSize.xxl,
+    fontSize: fontSize.xxxl,
     fontWeight: fontWeight.bold,
     color: colors.white,
-    marginTop: 2,
+    letterSpacing: -1,
   },
   heroActionContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   heroIconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
-    ...shadows.sm,
+    ...shadows.md,
   },
   heroActionTitle: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
     color: colors.white,
   },
   heroActionSubtitle: {
     fontSize: fontSize.sm,
     color: colors.white,
-    opacity: 0.8,
+    opacity: 0.9,
   },
   heroDecor1: {
     position: 'absolute',
-    top: -30,
-    right: -30,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    top: -20,
+    right: -20,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   heroDecor2: {
     position: 'absolute',
-    bottom: -40,
-    right: 40,
+    bottom: -30,
+    right: 50,
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  quoteContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: colors.accentLight + '30',
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-    borderRadius: borderRadius.xl,
-    padding: spacing.md,
+  heroDecorIcon: {
+    position: 'absolute',
+    bottom: -20,
+    right: -20,
   },
-  quoteIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.accentLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.sm,
-  },
-  quoteText: {
-    flex: 1,
-    fontSize: fontSize.sm,
-    color: colors.text,
-    lineHeight: fontSize.sm * 1.6,
+  sectionHeaderContainer: {
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.xl,
+    marginBottom: spacing.md,
   },
   sectionsTitle: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
     color: colors.textDark,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.xl,
-    marginBottom: spacing.md,
   },
   sectionsGrid: {
     paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   sectionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.backgroundLight,
-    borderRadius: borderRadius.xl,
+    width: '100%',
     padding: spacing.md,
-    marginBottom: spacing.sm,
+    borderRadius: borderRadius.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 140,
     ...shadows.sm,
   },
   iconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: borderRadius.lg,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  sectionContent: {
-    flex: 1,
-    marginLeft: spacing.md,
+    marginBottom: spacing.sm,
   },
   sectionTitle: {
     fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
     color: colors.textDark,
-    letterSpacing: 0.2,
+    textAlign: 'center',
   },
   sectionSubtitle: {
-    fontSize: fontSize.sm,
+    fontSize: fontSize.xs,
     color: colors.textLight,
-    marginTop: 2,
-  },
-  chevronContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    textAlign: 'center',
   },
   footer: {
     alignItems: 'center',
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
-  },
-  footerDivider: {
-    width: 40,
-    height: 3,
-    backgroundColor: colors.backgroundDark,
-    borderRadius: 2,
-    marginBottom: spacing.lg,
+    paddingVertical: spacing.xl,
   },
   footerText: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-    color: colors.primary,
-  },
-  footerSubtext: {
-    fontSize: fontSize.xs,
+    fontSize: fontSize.sm,
     color: colors.textMuted,
-    marginTop: 2,
+    fontStyle: 'italic',
   },
 });
