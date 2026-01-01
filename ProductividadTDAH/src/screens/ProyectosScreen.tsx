@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
-import { Card, Button, Input, ProgressBar, CheckBox } from '../components';
+import { Card, Button, Input, ProgressBar, CheckBox, FocusTimerModal } from '../components';
 import { useData, Project } from '../context/DataContext';
 
 interface ProyectosScreenProps {
@@ -17,6 +17,7 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [projectTasks, setProjectTasks] = useState(['', '', '']);
+  const [showFocusTimer, setShowFocusTimer] = useState(false);
 
   const handleAddProject = async () => {
     if (!projectName.trim()) return;
@@ -290,6 +291,14 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
                   </TouchableOpacity>
                 </View>
 
+                <TouchableOpacity 
+                    style={styles.focusButton}
+                    onPress={() => setShowFocusTimer(true)}
+                >
+                    <Ionicons name="timer-outline" size={20} color={colors.white} />
+                    <Text style={styles.focusButtonText}>Iniciar Sesión de Enfoque (25m)</Text>
+                </TouchableOpacity>
+
                 {selectedProject.description && (
                   <Text style={styles.detailDescription}>{selectedProject.description}</Text>
                 )}
@@ -327,6 +336,15 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
           </View>
         </View>
       </Modal>
+
+      {/* Focus Timer Modal */}
+      {selectedProject && (
+          <FocusTimerModal 
+            visible={showFocusTimer}
+            onClose={() => setShowFocusTimer(false)}
+            projectName={selectedProject.name}
+          />
+      )}
     </SafeAreaView>
   );
 };
@@ -563,4 +581,20 @@ const styles = StyleSheet.create({
   closeButton: {
     marginTop: spacing.lg,
   },
+  focusButton: {
+      backgroundColor: colors.proyectos,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.md,
+      borderRadius: borderRadius.lg,
+      marginBottom: spacing.md,
+      gap: spacing.sm,
+      ...shadows.sm,
+  },
+  focusButtonText: {
+      color: colors.white,
+      fontWeight: fontWeight.bold,
+      fontSize: fontSize.md,
+  }
 });

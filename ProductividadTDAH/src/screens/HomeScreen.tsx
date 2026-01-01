@@ -16,6 +16,7 @@ import { es } from 'date-fns/locale';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
 import { useData, DailyEntry } from '../context/DataContext';
 import haptic from '../utils/haptics';
+import { MorningRitualModal } from '../components';
 
 interface HomeScreenProps {
   navigation: any;
@@ -36,7 +37,7 @@ const energyLevels = [
 ];
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
-  const { getDailyEntry, addDailyEntry } = useData();
+  const { getDailyEntry, addDailyEntry, addBrainDump } = useData();
   const today = format(new Date(), 'yyyy-MM-dd');
   const dayName = format(new Date(), "EEEE", { locale: es });
   const dateString = format(new Date(), "d 'de' MMMM", { locale: es });
@@ -55,6 +56,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const [newTask, setNewTask] = useState('');
   const [showCheckin, setShowCheckin] = useState(true);
+  const [showMorningModal, setShowMorningModal] = useState(false);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -99,6 +101,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       gratitude: updatedEntry.gratitude || [],
       notes: updatedEntry.notes || '',
     });
+  };
+
+  const handleMorningComplete = async (plannedTasks: string[], dumpItems: string[]) => {
+      // Save dump to Brain Dump
+      if (dumpItems.length > 0) {
+          await addBrainDump(dumpItems);
+      }
+      
+      // Save to daily entry
+      const updatedDump = [...(entry.dump || []), ...dumpItems];
+      const updatedPlanned = [...(entry.planned || []), ...plannedTasks].slice(0, 3); // Enforce max 3
+      
+      await saveEntry({
+          dump: updatedDump,
+          planned: updatedPlanned
+      });
+      
+      haptic.success();
   };
 
   const handleMoodSelect = (value: number) => {
@@ -177,6 +197,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               </View>
             )}
           </View>
+
+            {/* Morning Ritual Call to Action - Only if no tasks planned yet */}
+            {totalCount === 0 && (
+            <TouchableOpacity 
+                style={styles.ritualCard}
+                onPress={() => setShowMorningModal(true)}
+            >
+                <View style={styles.ritualContent}>
+                    <View style={styles.ritualIcon}>
+                        <Ionicons name="sparkles" size={24} color={colors.white} />
+                    </View>
+                    <View style={styles.ritualTextContainer}>
+                        <Text style={styles.ritualTitle}>Iniciar Ritual Mañanero</Text>
+                        <Text style={styles.ritualSubtitle}>Vacía tu mente, prioriza y enfócate.</Text>
+                    </View>
+                    <Ionicons name="arrow-forward" size={24} color={colors.primary} />
+                </View>
+            </TouchableOpacity>
+            )}
 
           {/* Quick Check-in - Collapsible, simple */}
           {showCheckin && (
@@ -389,6 +428,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
+
+      <MorningRitualModal 
+        visible={showMorningModal}
+        onClose={() => setShowMorningModal(false)}
+        onComplete={handleMorningComplete}
+      />
     </SafeAreaView>
   );
 };
@@ -436,6 +481,41 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     fontWeight: fontWeight.bold,
     color: colors.white,
+  },
+  ritualCard: {
+      backgroundColor: colors.white,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+      padding: spacing.md,
+      borderRadius: borderRadius.lg,
+      ...shadows.md,
+      borderLeftWidth: 4,
+      borderLeftColor: colors.primary,
+  },
+  ritualContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+  },
+  ritualIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.md,
+  },
+  ritualTextContainer: {
+      flex: 1,
+  },
+  ritualTitle: {
+      fontSize: fontSize.md,
+      fontWeight: fontWeight.bold,
+      color: colors.textDark,
+  },
+  ritualSubtitle: {
+      fontSize: fontSize.sm,
+      color: colors.textLight,
   },
   checkinCard: {
     backgroundColor: colors.white,
