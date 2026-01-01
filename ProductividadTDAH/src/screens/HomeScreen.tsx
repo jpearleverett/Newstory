@@ -8,16 +8,20 @@ import {
   TextInput,
   Animated,
   Keyboard,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
+import { colors, spacing, fontSize, fontWeight, borderRadius, shadows, animation } from '../styles/theme';
 import { useData, DailyEntry } from '../context/DataContext';
 import { useLanguage } from '../i18n/LanguageContext';
 import haptic from '../utils/haptics';
-import { MorningRitualModal, BrainDumpModal } from '../components';
+import { MorningRitualModal, BrainDumpModal, Card } from '../components';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
 
 interface HomeScreenProps {
   navigation: any;
@@ -51,7 +55,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   // ADHD-Friendly: Only 3 mood options
   const moods = [
@@ -81,16 +85,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 500,
+        duration: 800,
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
+      Animated.spring(slideAnim, {
         toValue: 0,
-        duration: 500,
+        damping: 20,
+        stiffness: 90,
         useNativeDriver: true,
       }),
     ]).start();
-  }, [language]); // Re-run when language changes to update labels
+  }, [language]); 
 
   const saveEntry = async (updates: Partial<DailyEntry>) => {
     const updatedEntry = { ...entry, ...updates };
@@ -109,14 +114,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
   const handleMorningComplete = async (plannedTasks: string[], dumpItems: string[]) => {
-      // Save dump to Brain Dump
       if (dumpItems.length > 0) {
           await addBrainDump(dumpItems);
       }
       
-      // Save to daily entry
       const updatedDump = [...(entry.dump || []), ...dumpItems];
-      const updatedPlanned = [...(entry.planned || []), ...plannedTasks].slice(0, 3); // Enforce max 3
+      const updatedPlanned = [...(entry.planned || []), ...plannedTasks].slice(0, 3);
       
       await saveEntry({
           dump: updatedDump,
@@ -143,16 +146,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const handleEnergySelect = (value: number) => {
     haptic.selection();
     saveEntry({ energyLevel: value });
-    // After selecting energy, hide checkin after a brief moment
-    setTimeout(() => setShowCheckin(false), 300);
+    setTimeout(() => {
+        Animated.timing(slideAnim, { // Subtle nudge effect
+            toValue: -10,
+            duration: 200,
+            useNativeDriver: true
+        }).start(() => {
+             setShowCheckin(false);
+             Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true }).start();
+        });
+    }, 400);
   };
 
   const addTask = () => {
     if (!newTask.trim()) return;
-    if ((entry.planned?.length || 0) >= 3) {
-      // ADHD-Friendly: Max 3 tasks. Research says more leads to paralysis.
-      return;
-    }
+    if ((entry.planned?.length || 0) >= 3) return;
     haptic.light();
     const planned = [...(entry.planned || []), newTask.trim()];
     saveEntry({ planned });
@@ -195,7 +203,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             transform: [{ translateY: slideAnim }],
           }}
         >
-          {/* Header - Simple, focused on TODAY */}
+          {/* Header */}
           <View style={styles.header}>
             <View style={styles.dateContainer}>
               <Text style={styles.dayName}>
@@ -204,36 +212,41 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               <Text style={styles.dateString}>{dateString}</Text>
             </View>
             {totalCount > 0 && (
-              <View style={styles.progressBadge}>
-                <Text style={styles.progressText}>
-                  {completedCount}/{totalCount}
-                </Text>
-              </View>
+                <View style={styles.progressRingContainer}>
+                   {/* Simplified Progress Badge */}
+                   <View style={styles.progressBadge}>
+                     <Text style={styles.progressText}>
+                        {Math.round((completedCount / totalCount) * 100)}%
+                     </Text>
+                   </View>
+                </View>
             )}
           </View>
 
-            {/* Morning Ritual Call to Action - Only if no tasks planned yet */}
-            {totalCount === 0 && (
-            <TouchableOpacity 
-                style={styles.ritualCard}
+          {/* Morning Ritual CTA */}
+          {totalCount === 0 && (
+            <Card 
                 onPress={() => setShowMorningModal(true)}
+                variant="gradient"
+                gradientColors={colors.gradients.rose}
+                style={styles.ritualCard}
             >
                 <View style={styles.ritualContent}>
-                    <View style={styles.ritualIcon}>
+                    <View style={styles.ritualIconContainer}>
                         <Ionicons name="sparkles" size={24} color={colors.white} />
                     </View>
                     <View style={styles.ritualTextContainer}>
-                        <Text style={styles.ritualTitle}>{t('start_ritual_title')}</Text>
-                        <Text style={styles.ritualSubtitle}>{t('start_ritual_subtitle')}</Text>
+                        <Text style={styles.ritualTitleLight}>{t('start_ritual_title')}</Text>
+                        <Text style={styles.ritualSubtitleLight}>{t('start_ritual_subtitle')}</Text>
                     </View>
-                    <Ionicons name="arrow-forward" size={24} color={colors.primary} />
+                    <Ionicons name="arrow-forward" size={24} color={colors.white} style={{opacity: 0.8}} />
                 </View>
-            </TouchableOpacity>
-            )}
+            </Card>
+          )}
 
-          {/* Quick Check-in - Collapsible, simple */}
+          {/* Check-in Card */}
           {showCheckin && (
-            <View style={styles.checkinCard}>
+            <Card variant="elevated" style={styles.checkinCard}>
               <View style={styles.checkinHeader}>
                 <Text style={styles.checkinTitle}>{t('checkin_title')}</Text>
                 {hasCheckedIn && (
@@ -243,7 +256,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 )}
               </View>
 
-              {/* Mood - 3 options only */}
               <View style={styles.moodContainer}>
                 {moods.map((mood) => (
                   <TouchableOpacity
@@ -265,7 +277,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 ))}
               </View>
 
-              {/* Energy - Show only after mood is selected */}
               {entry.mood !== undefined && entry.mood >= 0 && (
                 <View style={styles.energySection}>
                   <Text style={styles.energyLabel}>{t('energy_label')}</Text>
@@ -277,6 +288,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                           styles.energyButton,
                           entry.energyLevel === level.value && {
                             backgroundColor: level.color,
+                            shadowColor: level.color,
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 8,
+                            elevation: 4,
                           },
                         ]}
                         onPress={() => handleEnergySelect(level.value)}
@@ -292,10 +308,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   </View>
                 </View>
               )}
-            </View>
+            </Card>
           )}
 
-          {/* Show checkin again button if hidden */}
           {!showCheckin && hasCheckedIn && (
             <TouchableOpacity
               style={styles.checkinMiniButton}
@@ -305,20 +320,30 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 {moods.find(m => m.value === entry.mood)?.emoji || '😊'}
               </Text>
               <Text style={styles.checkinMiniText}>
-                {energyLevels.find(e => e.value === entry.energyLevel)?.label || 'Normal'} {t('energy_label').replace(':', '')}
+                {t('checkin_title')} • {energyLevels.find(e => e.value === entry.energyLevel)?.label || 'Normal'}
               </Text>
               <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
             </TouchableOpacity>
           )}
 
-          {/* Main Focus Card - THE core feature */}
-          <View style={styles.focusCard}>
+          {/* MAIN FOCUS CARD */}
+          <Card 
+            variant="gradient" 
+            gradientColors={colors.gradients.primary}
+            style={styles.focusCard}
+            hapticFeedback={false} // Handle internal interactions
+          >
             <View style={styles.focusHeader}>
-              <Ionicons name="sunny" size={24} color={colors.primary} />
-              <Text style={styles.focusTitle}>{t('focus_title')}</Text>
+              <View style={styles.focusTitleRow}>
+                <Ionicons name="sunny" size={24} color={colors.white} />
+                <Text style={styles.focusTitleLight}>{t('focus_title')}</Text>
+              </View>
+              <View style={styles.focusCountBadge}>
+                 <Text style={styles.focusCountText}>{totalCount}/3</Text>
+              </View>
             </View>
 
-            <Text style={styles.focusSubtitle}>
+            <Text style={styles.focusSubtitleLight}>
               {totalCount === 0
                 ? t('focus_subtitle_empty')
                 : totalCount < 3
@@ -326,43 +351,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 : t('focus_subtitle_full')}
             </Text>
 
-            {/* Task Input - Only show if less than 3 tasks */}
-            {totalCount < 3 && (
-              <View style={styles.inputRow}>
-                <TextInput
-                  style={styles.taskInput}
-                  placeholder={t('add_task_placeholder')}
-                  placeholderTextColor={colors.textMuted}
-                  value={newTask}
-                  onChangeText={setNewTask}
-                  onSubmitEditing={addTask}
-                  returnKeyType="done"
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.addButton,
-                    !newTask.trim() && styles.addButtonDisabled,
-                  ]}
-                  onPress={addTask}
-                  disabled={!newTask.trim()}
-                >
-                  <Ionicons name="add" size={24} color={colors.white} />
-                </TouchableOpacity>
-              </View>
-            )}
-
             {/* Tasks List */}
-            {totalCount === 0 ? (
-              <View style={styles.emptyState}>
-                <Ionicons name="sparkles-outline" size={48} color={colors.textMuted} />
-                <Text style={styles.emptyText}>
-                  {t('empty_focus_text')}
-                </Text>
-                <Text style={styles.emptyHint}>
-                  {t('empty_focus_hint')}
-                </Text>
-              </View>
-            ) : (
+            {totalCount > 0 && (
               <View style={styles.tasksList}>
                 {entry.planned?.map((task, index) => {
                   const isCompleted = entry.acted?.includes(task);
@@ -383,7 +373,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                           isCompleted && styles.checkboxChecked,
                         ]}>
                           {isCompleted && (
-                            <Ionicons name="checkmark" size={16} color={colors.white} />
+                            <Ionicons name="checkmark" size={18} color={colors.primary} />
                           )}
                         </View>
                       </TouchableOpacity>
@@ -404,51 +394,85 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 })}
               </View>
             )}
-          </View>
 
-          {/* Success Message - When all tasks done */}
+            {/* Input Row - Inside the card for seamless look */}
+            {totalCount < 3 && (
+              <View style={[styles.inputRow, totalCount > 0 && { marginTop: spacing.md }]}>
+                <TextInput
+                  style={styles.taskInput}
+                  placeholder={t('add_task_placeholder')}
+                  placeholderTextColor={'rgba(255,255,255, 0.7)'}
+                  value={newTask}
+                  onChangeText={setNewTask}
+                  onSubmitEditing={addTask}
+                  returnKeyType="done"
+                  selectionColor={colors.white}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.addButton,
+                    !newTask.trim() && styles.addButtonDisabled,
+                  ]}
+                  onPress={addTask}
+                  disabled={!newTask.trim()}
+                >
+                  <Ionicons name="arrow-up" size={24} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {totalCount === 0 && (
+                 <View style={{ alignItems: 'center', opacity: 0.8, marginTop: spacing.lg }}>
+                    <Ionicons name="list-outline" size={40} color={colors.white} />
+                    <Text style={{ color: colors.white, marginTop: 8, fontSize: fontSize.sm }}>{t('empty_focus_hint')}</Text>
+                 </View>
+            )}
+          </Card>
+
+          {/* Celebration Card */}
           {totalCount > 0 && completedCount === totalCount && (
-            <View style={styles.successCard}>
+            <Card 
+                variant="elevated"
+                color={colors.highlight}
+                style={styles.successCard}
+            >
               <Text style={styles.successEmoji}>🎉</Text>
               <Text style={styles.successTitle}>{t('success_title')}</Text>
               <Text style={styles.successText}>
                 {t('success_text')}
               </Text>
-            </View>
+            </Card>
           )}
 
-          {/* Gentle Tip */}
-          <View style={styles.tipCard}>
-            <Ionicons name="leaf" size={18} color={colors.primary} />
-            <Text style={styles.tipText}>
-              {totalCount === 0
-                ? t('tip_start')
-                : completedCount === totalCount
-                ? t('tip_celebrate')
-                : t('tip_break_down')}
-            </Text>
-          </View>
-
-          {/* Quick Access to Full Planner */}
+          {/* Navigation Links */}
           <TouchableOpacity
             style={styles.expandButton}
             onPress={() => navigation.navigate('Diario')}
           >
             <View style={styles.expandContent}>
-              <Ionicons name="calendar-outline" size={20} color={colors.textLight} />
+              <View style={[styles.iconBox, { backgroundColor: colors.infoLight }]}>
+                 <Ionicons name="calendar" size={22} color={colors.info} />
+              </View>
               <Text style={styles.expandText}>{t('view_full_planner')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
+
         </Animated.View>
       </ScrollView>
 
-      {/* FAB for Brain Dump */}
+      {/* FAB */}
       <TouchableOpacity 
         style={styles.fab}
         onPress={() => setShowBrainDumpModal(true)}
+        activeOpacity={0.8}
       >
-        <Ionicons name="bulb" size={28} color={colors.white} />
+        <LinearGradient
+            colors={colors.gradients.sunset}
+            style={styles.fabGradient}
+        >
+            <Ionicons name="bulb" size={28} color={colors.white} />
+        </LinearGradient>
       </TouchableOpacity>
 
       <MorningRitualModal 
@@ -475,29 +499,35 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: spacing.xxl + 80, // Extra padding for FAB
+    paddingBottom: spacing.xxl + 80,
+    paddingHorizontal: spacing.lg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
+    marginTop: spacing.lg,
+    marginBottom: spacing.lg,
   },
   dateContainer: {
     flex: 1,
   },
   dayName: {
-    fontSize: fontSize.xxl,
+    fontSize: fontSize.title,
     fontWeight: fontWeight.bold,
     color: colors.textDark,
-    letterSpacing: -0.5,
+    letterSpacing: -1,
+    lineHeight: 48,
   },
   dateString: {
-    fontSize: fontSize.md,
+    fontSize: fontSize.lg,
     color: colors.textLight,
-    marginTop: 2,
+    marginTop: 0,
+    fontWeight: fontWeight.medium,
+  },
+  progressRingContainer: {
+      justifyContent: 'center',
+      alignItems: 'center',
   },
   progressBadge: {
     backgroundColor: colors.primary,
@@ -506,29 +536,23 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.round,
   },
   progressText: {
-    fontSize: fontSize.md,
+    fontSize: fontSize.sm,
     fontWeight: fontWeight.bold,
     color: colors.white,
   },
   ritualCard: {
-      backgroundColor: colors.white,
-      marginHorizontal: spacing.lg,
-      marginBottom: spacing.md,
-      padding: spacing.md,
-      borderRadius: borderRadius.lg,
-      ...shadows.md,
-      borderLeftWidth: 4,
-      borderLeftColor: colors.primary,
+      marginBottom: spacing.lg,
+      borderLeftWidth: 0, // Override default
   },
   ritualContent: {
       flexDirection: 'row',
       alignItems: 'center',
   },
-  ritualIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.primary,
+  ritualIconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: 'rgba(255,255,255,0.2)',
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: spacing.md,
@@ -536,22 +560,17 @@ const styles = StyleSheet.create({
   ritualTextContainer: {
       flex: 1,
   },
-  ritualTitle: {
+  ritualTitleLight: {
       fontSize: fontSize.md,
       fontWeight: fontWeight.bold,
-      color: colors.textDark,
+      color: colors.white,
   },
-  ritualSubtitle: {
+  ritualSubtitleLight: {
       fontSize: fontSize.sm,
-      color: colors.textLight,
+      color: 'rgba(255,255,255,0.9)',
   },
   checkinCard: {
-    backgroundColor: colors.white,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    padding: spacing.lg,
-    borderRadius: borderRadius.xl,
-    ...shadows.sm,
+    marginBottom: spacing.lg,
   },
   checkinHeader: {
     flexDirection: 'row',
@@ -567,18 +586,21 @@ const styles = StyleSheet.create({
   moodContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    marginVertical: spacing.sm,
   },
   moodButton: {
     alignItems: 'center',
     padding: spacing.md,
     borderRadius: borderRadius.lg,
     minWidth: 80,
+    backgroundColor: colors.background,
   },
   moodButtonSelected: {
     backgroundColor: colors.primaryMuted,
+    transform: [{ scale: 1.05 }],
   },
   moodEmoji: {
-    fontSize: 36,
+    fontSize: 32,
     marginBottom: spacing.xs,
   },
   moodLabel: {
@@ -602,15 +624,16 @@ const styles = StyleSheet.create({
   },
   energyContainer: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   energyButton: {
     flex: 1,
-    paddingVertical: spacing.sm,
+    paddingVertical: 12,
     paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.backgroundDark,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.background,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   energyText: {
     fontSize: fontSize.sm,
@@ -619,19 +642,18 @@ const styles = StyleSheet.create({
   },
   energyTextSelected: {
     color: colors.white,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
   },
   checkinMiniButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.white,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    padding: spacing.sm,
+    marginBottom: spacing.lg,
+    padding: spacing.md,
     borderRadius: borderRadius.lg,
     gap: spacing.sm,
-    ...shadows.xs,
+    ...shadows.sm,
   },
   checkinMiniEmoji: {
     fontSize: 20,
@@ -639,183 +661,176 @@ const styles = StyleSheet.create({
   checkinMiniText: {
     fontSize: fontSize.sm,
     color: colors.textLight,
+    fontWeight: fontWeight.medium,
   },
   focusCard: {
-    backgroundColor: colors.white,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    padding: spacing.lg,
-    borderRadius: borderRadius.xl,
-    ...shadows.md,
+    marginBottom: spacing.lg,
+    minHeight: 200,
+    justifyContent: 'space-between',
   },
   focusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
   },
-  focusTitle: {
+  focusTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  focusTitleLight: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
-    color: colors.textDark,
-    marginLeft: spacing.sm,
+    color: colors.white,
   },
-  focusSubtitle: {
+  focusCountBadge: {
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+  },
+  focusCountText: {
+      color: colors.white,
+      fontSize: 12,
+      fontWeight: 'bold',
+  },
+  focusSubtitleLight: {
     fontSize: fontSize.sm,
-    color: colors.textLight,
-    marginBottom: spacing.md,
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: spacing.lg,
   },
   inputRow: {
     flexDirection: 'row',
-    marginBottom: spacing.md,
+    alignItems: 'center',
   },
   taskInput: {
     flex: 1,
-    backgroundColor: colors.backgroundLight,
-    borderWidth: 1,
-    borderColor: colors.backgroundDark,
-    borderRadius: borderRadius.md,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: 12,
     fontSize: fontSize.md,
-    color: colors.text,
+    color: colors.white,
     marginRight: spacing.sm,
   },
   addButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.white,
     width: 48,
     height: 48,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
+    ...shadows.sm,
   },
   addButtonDisabled: {
-    backgroundColor: colors.textMuted,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-  },
-  emptyText: {
-    fontSize: fontSize.md,
-    color: colors.textLight,
-    marginTop: spacing.md,
-  },
-  emptyHint: {
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
-    marginTop: spacing.xs,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    elevation: 0,
   },
   tasksList: {
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
   taskItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.backgroundLight,
+    backgroundColor: colors.white,
     padding: spacing.md,
     borderRadius: borderRadius.lg,
     marginBottom: spacing.sm,
+    ...shadows.xs,
   },
   taskItemCompleted: {
-    backgroundColor: colors.successLight,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    opacity: 0.9,
   },
   taskCheckbox: {
     marginRight: spacing.md,
   },
   checkbox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 8,
     borderWidth: 2,
-    borderColor: colors.primary,
+    borderColor: colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.backgroundLight,
   },
   checkboxChecked: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: colors.white,
+    borderColor: colors.white,
   },
   taskText: {
     flex: 1,
     fontSize: fontSize.md,
     color: colors.text,
+    fontWeight: fontWeight.medium,
   },
   taskTextCompleted: {
     textDecorationLine: 'line-through',
-    color: colors.textLight,
+    color: colors.textMuted,
   },
   removeButton: {
     padding: spacing.xs,
   },
   successCard: {
-    backgroundColor: colors.successLight,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    padding: spacing.lg,
-    borderRadius: borderRadius.xl,
     alignItems: 'center',
+    marginBottom: spacing.lg,
+    backgroundColor: colors.white, 
   },
   successEmoji: {
-    fontSize: 48,
+    fontSize: 40,
     marginBottom: spacing.sm,
   },
   successTitle: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
-    color: colors.primary,
+    color: colors.textDark,
   },
   successText: {
     fontSize: fontSize.sm,
-    color: colors.text,
+    color: colors.textLight,
     marginTop: spacing.xs,
     textAlign: 'center',
-  },
-  tipCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: colors.primaryMuted,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    gap: spacing.sm,
-  },
-  tipText: {
-    flex: 1,
-    fontSize: fontSize.sm,
-    color: colors.primary,
-    lineHeight: 20,
   },
   expandButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.white,
-    marginHorizontal: spacing.lg,
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    ...shadows.xs,
+    padding: spacing.lg,
+    borderRadius: borderRadius.xl,
+    ...shadows.sm,
+    marginBottom: spacing.xl,
   },
   expandContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.md,
+  },
+  iconBox: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
   },
   expandText: {
-    fontSize: fontSize.sm,
-    color: colors.textLight,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.medium,
+    color: colors.text,
   },
   fab: {
     position: 'absolute',
-    bottom: spacing.xl,
+    bottom: spacing.lg,
     right: spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.pink,
+    ...shadows.lg,
+  },
+  fabGradient: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    ...shadows.lg,
-    zIndex: 100,
   },
 });
