@@ -478,6 +478,26 @@ export const translations = {
     manifestation_morning_instruction: 'Escribe tu intención 3 veces por la mañana',
     manifestation_afternoon_instruction: 'Escribe tu intención 6 veces por la tarde',
     manifestation_evening_instruction: 'Escribe tu intención 9 veces por la noche',
+
+    // Voice Brain Dump Modal
+    voice_dump_title: 'Descarga Mental',
+    voice_dump_subtitle: 'Habla o escribe. La IA organizará todo por ti.',
+    voice_recording: 'Grabando...',
+    voice_tap_to_record: 'Toca para hablar',
+    voice_or_type: 'O escribe aquí',
+    voice_placeholder: 'Necesito comprar leche, llamar al dentista, me siento estresado por el proyecto...',
+    voice_input_hint: 'Separa con comas o puntos. Yo ordeno todo.',
+    voice_process: 'Procesar con IA',
+    voice_sorted_items: 'Items Organizados',
+    voice_tap_to_change: 'Toca la etiqueta para cambiar la categoría',
+    voice_edit: 'Editar',
+    voice_save_all: 'Guardar Todo',
+    voice_category_task: 'Tarea',
+    voice_category_shopping: 'Compras',
+    voice_category_journal: 'Diario',
+    voice_category_project: 'Proyecto',
+    voice_category_self_care: 'Autocuidado',
+    voice_category_home: 'Casa',
   },
   en: {
     // Navigation & Common
@@ -958,5 +978,25 @@ export const translations = {
     manifestation_morning_instruction: 'Write your intention 3 times in the morning',
     manifestation_afternoon_instruction: 'Write your intention 6 times in the afternoon',
     manifestation_evening_instruction: 'Write your intention 9 times in the evening',
+
+    // Voice Brain Dump Modal
+    voice_dump_title: 'Brain Dump',
+    voice_dump_subtitle: 'Speak or type. AI will organize everything for you.',
+    voice_recording: 'Recording...',
+    voice_tap_to_record: 'Tap to speak',
+    voice_or_type: 'Or type here',
+    voice_placeholder: 'I need to buy milk, call the dentist, I feel stressed about the project...',
+    voice_input_hint: 'Separate with commas or periods. I\'ll sort everything.',
+    voice_process: 'Process with AI',
+    voice_sorted_items: 'Sorted Items',
+    voice_tap_to_change: 'Tap the label to change category',
+    voice_edit: 'Edit',
+    voice_save_all: 'Save All',
+    voice_category_task: 'Task',
+    voice_category_shopping: 'Shopping',
+    voice_category_journal: 'Journal',
+    voice_category_project: 'Project',
+    voice_category_self_care: 'Self Care',
+    voice_category_home: 'Home',
   }
 };

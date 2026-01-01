@@ -13,3 +13,5 @@ export { SunriseResetModal } from './SunriseResetModal';
 export { DayTimelineBar } from './DayTimelineBar';
 export { BodyDoublingCounter } from './BodyDoublingCounter';
 export { ManifestationModal } from './ManifestationModal';
+export { VoiceBrainDumpModal } from './VoiceBrainDumpModal';
+export type { ParsedItem, ParsedCategory } from './VoiceBrainDumpModal';

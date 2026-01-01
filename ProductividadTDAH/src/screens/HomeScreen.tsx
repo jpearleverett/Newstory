@@ -34,6 +34,8 @@ import {
   DayTimelineBar,
   BodyDoublingCounter,
   ManifestationModal,
+  VoiceBrainDumpModal,
+  ParsedItem,
 } from '../components';
 
 interface HomeScreenProps {
@@ -83,6 +85,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [showEnergyCheck, setShowEnergyCheck] = useState(false);
   const [showSunriseReset, setShowSunriseReset] = useState(false);
   const [showManifestationModal, setShowManifestationModal] = useState(false);
+  const [showVoiceDumpModal, setShowVoiceDumpModal] = useState(false);
 
   // Get current energy level from session
   const currentEnergyLevel = data.userSession?.currentEnergyLevel ?? 50;
@@ -226,6 +229,45 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     if (manifestation) {
       await updateManifestation(manifestation.id, period);
     }
+  };
+
+  const handleVoiceDumpSave = async (items: ParsedItem[]) => {
+    // Process each item based on its category
+    const taskItems = items.filter(item => item.category === 'task');
+    const shoppingItems = items.filter(item => item.category === 'shopping');
+    const journalItems = items.filter(item => item.category === 'journal');
+    const projectItems = items.filter(item => item.category === 'project');
+    const selfCareItems = items.filter(item => item.category === 'self_care');
+    const homeItems = items.filter(item => item.category === 'home');
+
+    // Add tasks to today's planned (up to max 3)
+    if (taskItems.length > 0) {
+      const currentPlanned = entry.planned || [];
+      const availableSlots = 3 - currentPlanned.length;
+      if (availableSlots > 0) {
+        const newTasks = taskItems.slice(0, availableSlots).map(item => item.text);
+        await saveEntry({ planned: [...currentPlanned, ...newTasks] });
+      }
+    }
+
+    // Add all other items to brain dump for later organization
+    const dumpItems = [
+      ...shoppingItems.map(item => `[Compras] ${item.text}`),
+      ...journalItems.map(item => `[Diario] ${item.text}`),
+      ...projectItems.map(item => `[Proyecto] ${item.text}`),
+      ...selfCareItems.map(item => `[Autocuidado] ${item.text}`),
+      ...homeItems.map(item => `[Casa] ${item.text}`),
+      // Tasks that didn't fit in planned
+      ...taskItems.slice(3 - (entry.planned?.length || 0)).map(item => `[Tarea] ${item.text}`),
+    ];
+
+    if (dumpItems.length > 0) {
+      await addBrainDump(dumpItems);
+      const updatedDump = [...(entry.dump || []), ...dumpItems];
+      await saveEntry({ dump: updatedDump });
+    }
+
+    haptic.success();
   };
 
   const handleMoodSelect = (value: number) => {
@@ -559,12 +601,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </Animated.View>
       </ScrollView>
 
-      {/* FAB for Brain Dump */}
-      <TouchableOpacity 
-        style={styles.fab}
+      {/* FAB for Voice Brain Dump - Primary */}
+      <TouchableOpacity
+        style={styles.fabPrimary}
+        onPress={() => setShowVoiceDumpModal(true)}
+      >
+        <Ionicons name="mic" size={32} color={colors.white} />
+      </TouchableOpacity>
+
+      {/* Secondary FAB for Text Brain Dump */}
+      <TouchableOpacity
+        style={styles.fabSecondary}
         onPress={() => setShowBrainDumpModal(true)}
       >
-        <Ionicons name="bulb" size={28} color={colors.white} />
+        <Ionicons name="bulb" size={24} color={colors.white} />
       </TouchableOpacity>
 
       <MorningRitualModal
@@ -599,6 +649,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         manifestation={getTodayManifestation()}
         onSetIntention={handleManifestationIntention}
         onIncrement={handleManifestationIncrement}
+      />
+
+      <VoiceBrainDumpModal
+        visible={showVoiceDumpModal}
+        onClose={() => setShowVoiceDumpModal(false)}
+        onComplete={handleVoiceDumpSave}
       />
     </SafeAreaView>
   );
@@ -943,17 +999,30 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textLight,
   },
-  fab: {
+  fabPrimary: {
     position: 'absolute',
     bottom: spacing.xl,
     right: spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.pink,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     ...shadows.lg,
+    zIndex: 100,
+  },
+  fabSecondary: {
+    position: 'absolute',
+    bottom: spacing.xl + 72,
+    right: spacing.lg + 8,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.pink,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.md,
     zIndex: 100,
   },
   // Manifestation Button
