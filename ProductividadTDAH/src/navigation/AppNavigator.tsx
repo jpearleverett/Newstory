@@ -3,40 +3,41 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, shadows, spacing, fontSize } from '../styles/theme';
+import { colors, shadows } from '../styles/theme';
 import {
   HomeScreen,
   TuAnoScreen,
   MetasScreen,
   AutoconocimientoScreen,
-  PriorizacionScreen,
   ProyectosScreen,
   DiarioScreen,
   CasaScreen,
   DineroScreen,
   AutocuidadoScreen,
 } from '../screens';
+import { MasScreen } from '../screens/MasScreen';
 
 export type RootStackParamList = {
   MainTabs: undefined;
   TuAno: undefined;
   Proyectos: undefined;
-  Autoconocimiento: undefined; // Moved out of tabs to keep tabs clean (4 items) or maybe put in tabs? User request: "Easy to navigate". 
+  Autoconocimiento: undefined;
   Casa: undefined;
   Dinero: undefined;
   Autocuidado: undefined;
+  Metas: undefined;
+  Diario: undefined;
 };
 
 export type MainTabParamList = {
-  Home: undefined;
-  Diario: undefined;
-  Metas: undefined;
-  Priorizacion: undefined;
+  Hoy: undefined;
+  Mas: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
+// ADHD-Friendly: Only 2 tabs - reduces decision fatigue
 const MainTabs = () => {
   return (
     <Tab.Navigator
@@ -46,57 +47,42 @@ const MainTabs = () => {
           backgroundColor: colors.white,
           borderTopWidth: 0,
           elevation: 20,
-          height: 65,
-          paddingBottom: 10,
-          paddingTop: 10,
+          height: 70,
+          paddingBottom: 12,
+          paddingTop: 12,
           ...shadows.lg,
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: '600',
-          marginTop: 2,
+          marginTop: 4,
         },
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, color }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
 
-          if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Diario') {
-            iconName = focused ? 'today' : 'today-outline';
-          } else if (route.name === 'Metas') {
-            iconName = focused ? 'trophy' : 'trophy-outline';
-          } else if (route.name === 'Priorizacion') {
-            iconName = focused ? 'layers' : 'layers-outline';
+          if (route.name === 'Hoy') {
+            iconName = focused ? 'sunny' : 'sunny-outline';
+          } else if (route.name === 'Mas') {
+            iconName = focused ? 'grid' : 'grid-outline';
           } else {
             iconName = 'ellipse';
           }
 
-          // Add a subtle bounce or glow if focused? For now just color.
-          return <Ionicons name={iconName} size={24} color={color} />;
+          return <Ionicons name={iconName} size={26} color={color} />;
         },
       })}
     >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeScreen} 
-        options={{ title: 'Inicio' }}
+      <Tab.Screen
+        name="Hoy"
+        component={HomeScreen}
+        options={{ title: 'Hoy' }}
       />
-      <Tab.Screen 
-        name="Diario" 
-        component={DiarioScreen} 
-        options={{ title: 'Agenda' }}
-      />
-      <Tab.Screen 
-        name="Metas" 
-        component={MetasScreen} 
-        options={{ title: 'Metas' }}
-      />
-      <Tab.Screen 
-        name="Priorizacion" 
-        component={PriorizacionScreen} 
-        options={{ title: 'Priorizar' }}
+      <Tab.Screen
+        name="Mas"
+        component={MasScreen}
+        options={{ title: 'Más' }}
       />
     </Tab.Navigator>
   );
@@ -138,13 +124,15 @@ export const AppNavigator: React.FC = () => {
             animation: 'fade',
           }}
         />
-        {/* Other screens that open on top of tabs */}
+        {/* Secondary screens - accessed from "Más" tab */}
         <Stack.Screen name="TuAno" component={TuAnoScreen} />
         <Stack.Screen name="Proyectos" component={ProyectosScreen} />
         <Stack.Screen name="Autoconocimiento" component={AutoconocimientoScreen} />
         <Stack.Screen name="Casa" component={CasaScreen} />
         <Stack.Screen name="Dinero" component={DineroScreen} />
         <Stack.Screen name="Autocuidado" component={AutocuidadoScreen} />
+        <Stack.Screen name="Metas" component={MetasScreen} />
+        <Stack.Screen name="Diario" component={DiarioScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

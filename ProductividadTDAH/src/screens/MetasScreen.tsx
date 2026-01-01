@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
-import { Card, Button, Input, ProgressBar, CheckBox } from '../components';
 import { useData, Goal } from '../context/DataContext';
+import { ProgressBar, CheckBox } from '../components';
+import haptic from '../utils/haptics';
 
+// ADHD-Friendly: Reduced from 8 categories to 4 (research: fewer choices = easier decisions)
 const goalCategories = [
-  { id: 'salud', name: 'Salud', icon: 'fitness-outline', color: colors.olive },
-  { id: 'carrera', name: 'Carrera', icon: 'briefcase-outline', color: colors.priorizacion },
-  { id: 'finanzas', name: 'Finanzas', icon: 'cash-outline', color: colors.dinero },
-  { id: 'relaciones', name: 'Relaciones', icon: 'people-outline', color: colors.pink },
-  { id: 'crecimiento', name: 'Crecimiento Personal', icon: 'trending-up-outline', color: colors.orange },
-  { id: 'hogar', name: 'Hogar', icon: 'home-outline', color: colors.casa },
-  { id: 'diversion', name: 'Diversión', icon: 'game-controller-outline', color: colors.proyectos },
-  { id: 'otro', name: 'Otro', icon: 'ellipsis-horizontal-outline', color: colors.textLight },
+  { id: 'esencial', name: 'Esencial', icon: 'star-outline', color: colors.primary, description: 'Lo más importante' },
+  { id: 'crecimiento', name: 'Crecer', icon: 'trending-up-outline', color: colors.orange, description: 'Desarrollo personal' },
+  { id: 'diversion', name: 'Disfrutar', icon: 'heart-outline', color: colors.pink, description: 'Pasatiempos y alegría' },
+  { id: 'otro', name: 'Otro', icon: 'ellipsis-horizontal-outline', color: colors.textLight, description: 'Todo lo demás' },
 ];
 
 interface MetasScreenProps {
@@ -26,16 +24,16 @@ export const MetasScreen: React.FC<MetasScreenProps> = ({ navigation }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(goalCategories[0]);
   const [goalTitle, setGoalTitle] = useState('');
-  const [goalDescription, setGoalDescription] = useState('');
   const [goalSteps, setGoalSteps] = useState(['', '', '']);
 
   const handleAddGoal = async () => {
     if (!goalTitle.trim()) return;
+    haptic.medium();
 
     await addGoal({
       category: selectedCategory.id,
       title: goalTitle,
-      description: goalDescription,
+      description: '',
       progress: 0,
       steps: goalSteps
         .filter(s => s.trim() !== '')
@@ -44,12 +42,12 @@ export const MetasScreen: React.FC<MetasScreenProps> = ({ navigation }) => {
 
     // Reset form
     setGoalTitle('');
-    setGoalDescription('');
     setGoalSteps(['', '', '']);
     setShowAddModal(false);
   };
 
   const toggleStep = async (goal: Goal, stepId: string) => {
+    haptic.light();
     const updatedSteps = goal.steps.map(s =>
       s.id === stepId ? { ...s, completed: !s.completed } : s
     );
@@ -62,51 +60,10 @@ export const MetasScreen: React.FC<MetasScreenProps> = ({ navigation }) => {
   };
 
   const getCategoryInfo = (categoryId: string) => {
-    return goalCategories.find(c => c.id === categoryId) || goalCategories[7];
+    return goalCategories.find(c => c.id === categoryId) || goalCategories[3];
   };
 
-  const renderGoalCard = (goal: Goal) => {
-    const category = getCategoryInfo(goal.category);
-
-    return (
-      <Card key={goal.id} variant="elevated" color={category.color} style={styles.goalCard}>
-        <View style={styles.goalHeader}>
-          <View style={[styles.categoryBadge, { backgroundColor: category.color + '20' }]}>
-            <Ionicons name={category.icon as any} size={16} color={category.color} />
-            <Text style={[styles.categoryText, { color: category.color }]}>{category.name}</Text>
-          </View>
-          <TouchableOpacity onPress={() => deleteGoal(goal.id)}>
-            <Ionicons name="trash-outline" size={20} color={colors.textLight} />
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.goalTitle}>{goal.title}</Text>
-        {goal.description && <Text style={styles.goalDescription}>{goal.description}</Text>}
-
-        <ProgressBar
-          progress={goal.progress}
-          color={category.color}
-          showLabel
-          label="Progreso"
-        />
-
-        {goal.steps.length > 0 && (
-          <View style={styles.stepsContainer}>
-            <Text style={styles.stepsTitle}>Pasos:</Text>
-            {goal.steps.map(step => (
-              <CheckBox
-                key={step.id}
-                checked={step.completed}
-                onToggle={() => toggleStep(goal, step.id)}
-                label={step.text}
-                color={category.color}
-              />
-            ))}
-          </View>
-        )}
-      </Card>
-    );
-  };
+  const completedGoals = data.goals.filter(g => g.progress === 100).length;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -117,89 +74,91 @@ export const MetasScreen: React.FC<MetasScreenProps> = ({ navigation }) => {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.title}>Metas</Text>
-            <Text style={styles.subtitle}>Define y alcanza tus objetivos</Text>
+            <Text style={styles.title}>Mis Metas</Text>
+            <Text style={styles.subtitle}>
+              {data.goals.length === 0
+                ? 'Empieza con una meta pequeña'
+                : `${completedGoals} de ${data.goals.length} completadas`}
+            </Text>
           </View>
           <TouchableOpacity onPress={() => setShowAddModal(true)} style={styles.addButton}>
-            <Ionicons name="add-circle" size={32} color={colors.metas} />
+            <Ionicons name="add-circle" size={32} color={colors.primary} />
           </TouchableOpacity>
-        </View>
-
-        {/* Quick Stats */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{data.goals.length}</Text>
-            <Text style={styles.statLabel}>Metas</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>
-              {data.goals.filter(g => g.progress === 100).length}
-            </Text>
-            <Text style={styles.statLabel}>Completadas</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>
-              {data.goals.length > 0
-                ? Math.round(data.goals.reduce((acc, g) => acc + g.progress, 0) / data.goals.length)
-                : 0}%
-            </Text>
-            <Text style={styles.statLabel}>Progreso</Text>
-          </View>
         </View>
 
         {/* Goals List */}
         {data.goals.length === 0 ? (
-          <Card style={styles.emptyCard}>
-            <Ionicons name="flag-outline" size={48} color={colors.textLight} />
-            <Text style={styles.emptyTitle}>No tienes metas aún</Text>
+          <View style={styles.emptyCard}>
+            <Ionicons name="flag-outline" size={48} color={colors.textMuted} />
+            <Text style={styles.emptyTitle}>Sin metas aún</Text>
             <Text style={styles.emptyText}>
-              Comienza agregando una meta. Recuerda empezar pequeño y ser específico.
+              Una meta pequeña es mejor que ninguna meta.
             </Text>
-            <Button
-              title="Agregar mi primera meta"
+            <TouchableOpacity
+              style={styles.emptyButton}
               onPress={() => setShowAddModal(true)}
-              variant="primary"
-              color={colors.metas}
-            />
-          </Card>
+            >
+              <Text style={styles.emptyButtonText}>Crear mi primera meta</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <View style={styles.goalsContainer}>
-            {data.goals.map(renderGoalCard)}
+            {data.goals.map((goal) => {
+              const category = getCategoryInfo(goal.category);
+              return (
+                <View key={goal.id} style={styles.goalCard}>
+                  <View style={styles.goalHeader}>
+                    <View style={[styles.categoryBadge, { backgroundColor: category.color + '20' }]}>
+                      <Ionicons name={category.icon as any} size={16} color={category.color} />
+                      <Text style={[styles.categoryText, { color: category.color }]}>
+                        {category.name}
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => deleteGoal(goal.id)}>
+                      <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={styles.goalTitle}>{goal.title}</Text>
+
+                  <ProgressBar
+                    progress={goal.progress}
+                    color={category.color}
+                    showLabel
+                    label={`${goal.progress}%`}
+                  />
+
+                  {goal.steps.length > 0 && (
+                    <View style={styles.stepsContainer}>
+                      {goal.steps.map(step => (
+                        <CheckBox
+                          key={step.id}
+                          checked={step.completed}
+                          onToggle={() => toggleStep(goal, step.id)}
+                          label={step.text}
+                          color={category.color}
+                        />
+                      ))}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
           </View>
         )}
 
-        {/* 369 Method Card */}
-        <Card style={styles.methodCard}>
-          <View style={styles.methodHeader}>
-            <Ionicons name="sparkles" size={24} color={colors.pink} />
-            <Text style={styles.methodTitle}>Método 369</Text>
-          </View>
-          <Text style={styles.methodDescription}>
-            Escribe tu meta 3 veces en la mañana, 6 veces en la tarde, y 9 veces en la noche
-            para programar tu mente hacia el éxito.
+        {/* Tip */}
+        <View style={styles.tipCard}>
+          <Ionicons name="leaf" size={18} color={colors.primary} />
+          <Text style={styles.tipText}>
+            Tip: Las metas pequeñas y específicas se logran más fácil. "Caminar 10 minutos" es mejor que "hacer ejercicio".
           </Text>
-          <TouchableOpacity style={styles.methodButton}>
-            <Text style={styles.methodButtonText}>Practicar método 369</Text>
-            <Ionicons name="arrow-forward" size={16} color={colors.pink} />
-          </TouchableOpacity>
-        </Card>
+        </View>
 
-        {/* Tips */}
-        <Card style={styles.tipsCard}>
-          <View style={styles.tipsHeader}>
-            <Ionicons name="bulb" size={20} color={colors.orange} />
-            <Text style={styles.tipsTitle}>Tips para TDAH</Text>
-          </View>
-          <Text style={styles.tipsText}>
-            • Divide tus metas grandes en pasos pequeños{'\n'}
-            • Celebra cada paso completado{'\n'}
-            • No te compares con otros, solo contigo mismo{'\n'}
-            • Está bien ajustar tus metas si es necesario
-          </Text>
-        </Card>
+        <View style={styles.bottomSpace} />
       </ScrollView>
 
-      {/* Add Goal Modal */}
+      {/* Add Goal Modal - Simplified */}
       <Modal visible={showAddModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -210,77 +169,70 @@ export const MetasScreen: React.FC<MetasScreenProps> = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>Categoría</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
-                {goalCategories.map(cat => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    style={[
-                      styles.categoryChip,
-                      selectedCategory.id === cat.id && { backgroundColor: cat.color },
-                    ]}
-                    onPress={() => setSelectedCategory(cat)}
-                  >
-                    <Ionicons
-                      name={cat.icon as any}
-                      size={16}
-                      color={selectedCategory.id === cat.id ? colors.white : cat.color}
-                    />
-                    <Text style={[
-                      styles.categoryChipText,
-                      selectedCategory.id === cat.id && { color: colors.white },
-                    ]}>
-                      {cat.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              <Input
-                label="¿Cuál es tu meta?"
-                placeholder="Ej: Hacer ejercicio 3 veces por semana"
-                value={goalTitle}
-                onChangeText={setGoalTitle}
-              />
-
-              <Input
-                label="Descripción (opcional)"
-                placeholder="Más detalles sobre tu meta..."
-                value={goalDescription}
-                onChangeText={setGoalDescription}
-                multiline
-              />
-
-              <Text style={styles.inputLabel}>Pasos para lograrla</Text>
-              {goalSteps.map((step, index) => (
-                <Input
-                  key={index}
-                  placeholder={`Paso ${index + 1}`}
-                  value={step}
-                  onChangeText={(value) => {
-                    const newSteps = [...goalSteps];
-                    newSteps[index] = value;
-                    setGoalSteps(newSteps);
+            {/* Category Selection - 4 options, displayed as simple chips */}
+            <Text style={styles.inputLabel}>Tipo de meta</Text>
+            <View style={styles.categoriesRow}>
+              {goalCategories.map(cat => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[
+                    styles.categoryChip,
+                    selectedCategory.id === cat.id && { backgroundColor: cat.color },
+                  ]}
+                  onPress={() => {
+                    haptic.selection();
+                    setSelectedCategory(cat);
                   }}
-                />
+                >
+                  <Ionicons
+                    name={cat.icon as any}
+                    size={16}
+                    color={selectedCategory.id === cat.id ? colors.white : cat.color}
+                  />
+                  <Text style={[
+                    styles.categoryChipText,
+                    selectedCategory.id === cat.id && { color: colors.white },
+                  ]}>
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
               ))}
-              <TouchableOpacity
-                style={styles.addStepButton}
-                onPress={() => setGoalSteps([...goalSteps, ''])}
-              >
-                <Ionicons name="add" size={20} color={colors.olive} />
-                <Text style={styles.addStepText}>Agregar paso</Text>
-              </TouchableOpacity>
+            </View>
 
-              <Button
-                title="Crear Meta"
-                onPress={handleAddGoal}
-                variant="primary"
-                color={colors.metas}
-                style={styles.createButton}
+            {/* Goal Title */}
+            <Text style={styles.inputLabel}>¿Cuál es tu meta?</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Ej: Caminar 15 minutos al día"
+              placeholderTextColor={colors.textMuted}
+              value={goalTitle}
+              onChangeText={setGoalTitle}
+            />
+
+            {/* Simple Steps - 3 max */}
+            <Text style={styles.inputLabel}>Pasos pequeños (opcional)</Text>
+            {goalSteps.map((step, index) => (
+              <TextInput
+                key={index}
+                style={styles.stepInput}
+                placeholder={`Paso ${index + 1}`}
+                placeholderTextColor={colors.textMuted}
+                value={step}
+                onChangeText={(value) => {
+                  const newSteps = [...goalSteps];
+                  newSteps[index] = value;
+                  setGoalSteps(newSteps);
+                }}
               />
-            </ScrollView>
+            ))}
+
+            <TouchableOpacity
+              style={[styles.createButton, !goalTitle.trim() && styles.createButtonDisabled]}
+              onPress={handleAddGoal}
+              disabled={!goalTitle.trim()}
+            >
+              <Text style={styles.createButtonText}>Crear Meta</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -299,9 +251,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.lg,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.metas,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
   },
   backButton: {
     marginRight: spacing.md,
@@ -318,38 +270,20 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: fontSize.sm,
     color: colors.textLight,
+    marginTop: 2,
   },
   addButton: {
     padding: spacing.xs,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.white,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    alignItems: 'center',
-    ...shadows.sm,
-  },
-  statNumber: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
-    color: colors.metas,
-  },
-  statLabel: {
-    fontSize: fontSize.xs,
-    color: colors.textLight,
-    marginTop: 2,
   },
   goalsContainer: {
     paddingHorizontal: spacing.lg,
   },
   goalCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
     marginBottom: spacing.md,
+    ...shadows.sm,
   },
   goalHeader: {
     flexDirection: 'row',
@@ -363,21 +297,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.round,
+    gap: spacing.xs,
   },
   categoryText: {
     fontSize: fontSize.xs,
     fontWeight: fontWeight.semibold,
-    marginLeft: spacing.xs,
   },
   goalTitle: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.semibold,
     color: colors.textDark,
-    marginBottom: spacing.xs,
-  },
-  goalDescription: {
-    fontSize: fontSize.sm,
-    color: colors.textLight,
     marginBottom: spacing.md,
   },
   stepsContainer: {
@@ -386,16 +315,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.backgroundDark,
   },
-  stepsTitle: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold,
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
   emptyCard: {
+    backgroundColor: colors.white,
     margin: spacing.lg,
-    alignItems: 'center',
     padding: spacing.xl,
+    borderRadius: borderRadius.xl,
+    alignItems: 'center',
+    ...shadows.sm,
   },
   emptyTitle: {
     fontSize: fontSize.lg,
@@ -407,60 +333,38 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textLight,
     textAlign: 'center',
-    marginVertical: spacing.md,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
-  methodCard: {
+  emptyButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+  },
+  emptyButtonText: {
+    color: colors.white,
+    fontWeight: fontWeight.semibold,
+    fontSize: fontSize.md,
+  },
+  tipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.primaryMuted,
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,
-    backgroundColor: colors.pinkLight + '30',
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    gap: spacing.sm,
   },
-  methodHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  methodTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
-    color: colors.pink,
-    marginLeft: spacing.sm,
-  },
-  methodDescription: {
+  tipText: {
+    flex: 1,
     fontSize: fontSize.sm,
-    color: colors.text,
+    color: colors.primary,
     lineHeight: 20,
   },
-  methodButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.md,
-  },
-  methodButtonText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold,
-    color: colors.pink,
-    marginRight: spacing.xs,
-  },
-  tipsCard: {
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.lg,
-    backgroundColor: colors.orangeLight + '30',
-  },
-  tipsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  tipsTitle: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-    color: colors.orange,
-    marginLeft: spacing.xs,
-  },
-  tipsText: {
-    fontSize: fontSize.sm,
-    color: colors.text,
-    lineHeight: 22,
+  bottomSpace: {
+    height: spacing.xxl,
   },
   modalOverlay: {
     flex: 1,
@@ -472,7 +376,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     padding: spacing.lg,
-    maxHeight: '90%',
+    maxHeight: '85%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -492,8 +396,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     marginTop: spacing.md,
   },
-  categoriesScroll: {
-    marginBottom: spacing.md,
+  categoriesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   categoryChip: {
     flexDirection: 'row',
@@ -501,26 +407,47 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.round,
-    marginRight: spacing.sm,
     backgroundColor: colors.backgroundDark,
+    gap: spacing.xs,
   },
   categoryChipText: {
     fontSize: fontSize.sm,
-    marginLeft: spacing.xs,
     color: colors.text,
   },
-  addStepButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  textInput: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.backgroundDark,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    fontSize: fontSize.md,
+    color: colors.text,
   },
-  addStepText: {
-    fontSize: fontSize.sm,
-    color: colors.olive,
-    marginLeft: spacing.xs,
+  stepInput: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.backgroundDark,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: fontSize.md,
+    color: colors.text,
+    marginBottom: spacing.sm,
   },
   createButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
     marginTop: spacing.lg,
-    marginBottom: spacing.xl,
+  },
+  createButtonDisabled: {
+    backgroundColor: colors.textMuted,
+  },
+  createButtonText: {
+    color: colors.white,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
   },
 });
