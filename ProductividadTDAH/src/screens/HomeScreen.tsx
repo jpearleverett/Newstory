@@ -12,34 +12,25 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, enUS } from 'date-fns/locale';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
 import { useData, DailyEntry } from '../context/DataContext';
+import { useLanguage } from '../i18n/LanguageContext';
 import haptic from '../utils/haptics';
+import { MorningRitualModal } from '../components';
 
 interface HomeScreenProps {
   navigation: any;
 }
 
-// ADHD-Friendly: Only 3 mood options (research: fewer choices = easier decisions)
-const moods = [
-  { emoji: '😔', label: 'Difícil', value: 0 },
-  { emoji: '😐', label: 'Normal', value: 1 },
-  { emoji: '😊', label: 'Bien', value: 2 },
-];
-
-// ADHD-Friendly: Only 3 energy options
-const energyLevels = [
-  { label: 'Bajo', value: 0, color: colors.pink },
-  { label: 'Normal', value: 1, color: colors.orange },
-  { label: 'Alto', value: 2, color: colors.primary },
-];
-
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
-  const { getDailyEntry, addDailyEntry } = useData();
+  const { getDailyEntry, addDailyEntry, addBrainDump } = useData();
+  const { t, language } = useLanguage();
+  
   const today = format(new Date(), 'yyyy-MM-dd');
-  const dayName = format(new Date(), "EEEE", { locale: es });
-  const dateString = format(new Date(), "d 'de' MMMM", { locale: es });
+  const dateLocale = language === 'es' ? es : enUS;
+  const dayName = format(new Date(), "EEEE", { locale: dateLocale });
+  const dateString = format(new Date(), language === 'es' ? "d 'de' MMMM" : "MMMM d", { locale: dateLocale });
 
   const [entry, setEntry] = useState<Partial<DailyEntry>>({
     date: today,
@@ -55,10 +46,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const [newTask, setNewTask] = useState('');
   const [showCheckin, setShowCheckin] = useState(true);
+  const [showMorningModal, setShowMorningModal] = useState(false);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
+
+  // ADHD-Friendly: Only 3 mood options
+  const moods = [
+    { emoji: '😔', label: t('mood_difficult'), value: 0 },
+    { emoji: '😐', label: t('mood_normal'), value: 1 },
+    { emoji: '😊', label: t('mood_good'), value: 2 },
+  ];
+
+  // ADHD-Friendly: Only 3 energy options
+  const energyLevels = [
+    { label: t('energy_low'), value: 0, color: colors.pink },
+    { label: t('energy_normal'), value: 1, color: colors.orange },
+    { label: t('energy_high'), value: 2, color: colors.primary },
+  ];
 
   useEffect(() => {
     const existingEntry = getDailyEntry(today);
@@ -83,7 +89,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [language]); // Re-run when language changes to update labels
 
   const saveEntry = async (updates: Partial<DailyEntry>) => {
     const updatedEntry = { ...entry, ...updates };
@@ -99,6 +105,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       gratitude: updatedEntry.gratitude || [],
       notes: updatedEntry.notes || '',
     });
+  };
+
+  const handleMorningComplete = async (plannedTasks: string[], dumpItems: string[]) => {
+      // Save dump to Brain Dump
+      if (dumpItems.length > 0) {
+          await addBrainDump(dumpItems);
+      }
+      
+      // Save to daily entry
+      const updatedDump = [...(entry.dump || []), ...dumpItems];
+      const updatedPlanned = [...(entry.planned || []), ...plannedTasks].slice(0, 3); // Enforce max 3
+      
+      await saveEntry({
+          dump: updatedDump,
+          planned: updatedPlanned
+      });
+      
+      haptic.success();
   };
 
   const handleMoodSelect = (value: number) => {
@@ -178,11 +202,30 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             )}
           </View>
 
+            {/* Morning Ritual Call to Action - Only if no tasks planned yet */}
+            {totalCount === 0 && (
+            <TouchableOpacity 
+                style={styles.ritualCard}
+                onPress={() => setShowMorningModal(true)}
+            >
+                <View style={styles.ritualContent}>
+                    <View style={styles.ritualIcon}>
+                        <Ionicons name="sparkles" size={24} color={colors.white} />
+                    </View>
+                    <View style={styles.ritualTextContainer}>
+                        <Text style={styles.ritualTitle}>{t('start_ritual_title')}</Text>
+                        <Text style={styles.ritualSubtitle}>{t('start_ritual_subtitle')}</Text>
+                    </View>
+                    <Ionicons name="arrow-forward" size={24} color={colors.primary} />
+                </View>
+            </TouchableOpacity>
+            )}
+
           {/* Quick Check-in - Collapsible, simple */}
           {showCheckin && (
             <View style={styles.checkinCard}>
               <View style={styles.checkinHeader}>
-                <Text style={styles.checkinTitle}>¿Cómo estás hoy?</Text>
+                <Text style={styles.checkinTitle}>{t('checkin_title')}</Text>
                 {hasCheckedIn && (
                   <TouchableOpacity onPress={() => setShowCheckin(false)}>
                     <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
@@ -215,7 +258,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               {/* Energy - Show only after mood is selected */}
               {entry.mood !== undefined && entry.mood >= 0 && (
                 <View style={styles.energySection}>
-                  <Text style={styles.energyLabel}>Energía:</Text>
+                  <Text style={styles.energyLabel}>{t('energy_label')}</Text>
                   <View style={styles.energyContainer}>
                     {energyLevels.map((level) => (
                       <TouchableOpacity
@@ -252,7 +295,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 {moods.find(m => m.value === entry.mood)?.emoji || '😊'}
               </Text>
               <Text style={styles.checkinMiniText}>
-                {energyLevels.find(e => e.value === entry.energyLevel)?.label || 'Normal'} energía
+                {energyLevels.find(e => e.value === entry.energyLevel)?.label || 'Normal'} {t('energy_label').replace(':', '')}
               </Text>
               <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
             </TouchableOpacity>
@@ -262,15 +305,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <View style={styles.focusCard}>
             <View style={styles.focusHeader}>
               <Ionicons name="sunny" size={24} color={colors.primary} />
-              <Text style={styles.focusTitle}>Mi Foco de Hoy</Text>
+              <Text style={styles.focusTitle}>{t('focus_title')}</Text>
             </View>
 
             <Text style={styles.focusSubtitle}>
               {totalCount === 0
-                ? '¿Qué es lo MÁS importante hoy?'
+                ? t('focus_subtitle_empty')
                 : totalCount < 3
-                ? `${3 - totalCount} espacios más disponibles`
-                : 'Máximo 3 tareas - enfócate'}
+                ? t('focus_subtitle_slots', { count: 3 - totalCount })
+                : t('focus_subtitle_full')}
             </Text>
 
             {/* Task Input - Only show if less than 3 tasks */}
@@ -278,7 +321,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               <View style={styles.inputRow}>
                 <TextInput
                   style={styles.taskInput}
-                  placeholder="Agregar tarea importante..."
+                  placeholder={t('add_task_placeholder')}
                   placeholderTextColor={colors.textMuted}
                   value={newTask}
                   onChangeText={setNewTask}
@@ -303,10 +346,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               <View style={styles.emptyState}>
                 <Ionicons name="sparkles-outline" size={48} color={colors.textMuted} />
                 <Text style={styles.emptyText}>
-                  Agrega tu tarea más importante
+                  {t('empty_focus_text')}
                 </Text>
                 <Text style={styles.emptyHint}>
-                  Solo 1-3 tareas. Menos es más.
+                  {t('empty_focus_hint')}
                 </Text>
               </View>
             ) : (
@@ -357,9 +400,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           {totalCount > 0 && completedCount === totalCount && (
             <View style={styles.successCard}>
               <Text style={styles.successEmoji}>🎉</Text>
-              <Text style={styles.successTitle}>¡Lo lograste!</Text>
+              <Text style={styles.successTitle}>{t('success_title')}</Text>
               <Text style={styles.successText}>
-                Completaste todo lo que planeaste para hoy
+                {t('success_text')}
               </Text>
             </View>
           )}
@@ -369,10 +412,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <Ionicons name="leaf" size={18} color={colors.primary} />
             <Text style={styles.tipText}>
               {totalCount === 0
-                ? 'Tip: Empieza con UNA sola cosa. Siempre puedes agregar más.'
+                ? t('tip_start')
                 : completedCount === totalCount
-                ? 'Tip: Tómate un momento para celebrar tu progreso.'
-                : 'Tip: Si una tarea se siente imposible, hazla más pequeña.'}
+                ? t('tip_celebrate')
+                : t('tip_break_down')}
             </Text>
           </View>
 
@@ -383,12 +426,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           >
             <View style={styles.expandContent}>
               <Ionicons name="calendar-outline" size={20} color={colors.textLight} />
-              <Text style={styles.expandText}>Ver planificador completo</Text>
+              <Text style={styles.expandText}>{t('view_full_planner')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
+
+      <MorningRitualModal 
+        visible={showMorningModal}
+        onClose={() => setShowMorningModal(false)}
+        onComplete={handleMorningComplete}
+      />
     </SafeAreaView>
   );
 };
@@ -436,6 +485,41 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     fontWeight: fontWeight.bold,
     color: colors.white,
+  },
+  ritualCard: {
+      backgroundColor: colors.white,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+      padding: spacing.md,
+      borderRadius: borderRadius.lg,
+      ...shadows.md,
+      borderLeftWidth: 4,
+      borderLeftColor: colors.primary,
+  },
+  ritualContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+  },
+  ritualIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.md,
+  },
+  ritualTextContainer: {
+      flex: 1,
+  },
+  ritualTitle: {
+      fontSize: fontSize.md,
+      fontWeight: fontWeight.bold,
+      color: colors.textDark,
+  },
+  ritualSubtitle: {
+      fontSize: fontSize.sm,
+      color: colors.textLight,
   },
   checkinCard: {
     backgroundColor: colors.white,

@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, shadows } from '../styles/theme';
+import { useLanguage } from '../i18n/LanguageContext';
 import {
   HomeScreen,
   TuAnoScreen,
@@ -39,6 +40,8 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 // ADHD-Friendly: Only 2 tabs - reduces decision fatigue
 const MainTabs = () => {
+  const { t } = useLanguage();
+  
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -77,12 +80,12 @@ const MainTabs = () => {
       <Tab.Screen
         name="Hoy"
         component={HomeScreen}
-        options={{ title: 'Hoy' }}
+        options={{ title: t('today') }}
       />
       <Tab.Screen
         name="Mas"
         component={MasScreen}
-        options={{ title: 'Más' }}
+        options={{ title: t('more') }}
       />
     </Tab.Navigator>
   );

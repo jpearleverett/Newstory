@@ -4,3 +4,5 @@ export { Input } from './Input';
 export { Header } from './Header';
 export { ProgressBar } from './ProgressBar';
 export { CheckBox } from './CheckBox';
+export { MorningRitualModal } from './MorningRitualModal';
+export { FocusTimerModal } from './FocusTimerModal';

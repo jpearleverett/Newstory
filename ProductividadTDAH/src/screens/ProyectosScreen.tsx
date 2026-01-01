@@ -3,8 +3,9 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
-import { Card, Button, Input, ProgressBar, CheckBox } from '../components';
+import { Card, Button, Input, ProgressBar, CheckBox, FocusTimerModal } from '../components';
 import { useData, Project } from '../context/DataContext';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface ProyectosScreenProps {
   navigation: any;
@@ -12,11 +13,13 @@ interface ProyectosScreenProps {
 
 export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) => {
   const { data, addProject, updateProject, deleteProject } = useData();
+  const { t, language } = useLanguage();
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [projectTasks, setProjectTasks] = useState(['', '', '']);
+  const [showFocusTimer, setShowFocusTimer] = useState(false);
 
   const handleAddProject = async () => {
     if (!projectName.trim()) return;
@@ -66,9 +69,9 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
 
   const getStatusText = (status: Project['status']) => {
     switch (status) {
-      case 'completed': return 'Completado';
-      case 'in-progress': return 'En progreso';
-      default: return 'Sin empezar';
+      case 'completed': return t('completed');
+      case 'in-progress': return t('in_progress');
+      default: return t('not_started');
     }
   };
 
@@ -102,21 +105,24 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
         progress={getProjectProgress(project)}
         color={getStatusColor(project.status)}
         showLabel
-        label="Progreso"
+        label={t('progress_label')}
       />
 
       <View style={styles.projectMeta}>
         <View style={styles.metaItem}>
           <Ionicons name="checkbox-outline" size={16} color={colors.textLight} />
           <Text style={styles.metaText}>
-            {project.tasks.filter(t => t.completed).length}/{project.tasks.length} tareas
+            {t('tasks_count', { 
+              completed: project.tasks.filter(t => t.completed).length, 
+              total: project.tasks.length 
+            })}
           </Text>
         </View>
         {project.deadline && (
           <View style={styles.metaItem}>
             <Ionicons name="calendar-outline" size={16} color={colors.textLight} />
             <Text style={styles.metaText}>
-              {new Date(project.deadline).toLocaleDateString('es-ES')}
+              {new Date(project.deadline).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US')}
             </Text>
           </View>
         )}
@@ -133,8 +139,8 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.title}>Proyectos</Text>
-            <Text style={styles.subtitle}>Gestiona tus proyectos</Text>
+            <Text style={styles.title}>{t('projects')}</Text>
+            <Text style={styles.subtitle}>{t('projects_desc')}</Text>
           </View>
           <TouchableOpacity onPress={() => setShowAddModal(true)} style={styles.addButton}>
             <Ionicons name="add-circle" size={32} color={colors.proyectos} />
@@ -145,19 +151,19 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{data.projects.length}</Text>
-            <Text style={styles.statLabel}>Proyectos</Text>
+            <Text style={styles.statLabel}>{t('projects')}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>
               {data.projects.filter(p => p.status === 'in-progress').length}
             </Text>
-            <Text style={styles.statLabel}>En progreso</Text>
+            <Text style={styles.statLabel}>{t('in_progress')}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>
               {data.projects.filter(p => p.status === 'completed').length}
             </Text>
-            <Text style={styles.statLabel}>Completados</Text>
+            <Text style={styles.statLabel}>{t('completed')}</Text>
           </View>
         </View>
 
@@ -165,11 +171,10 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
         <Card style={styles.tipCard}>
           <View style={styles.tipHeader}>
             <Ionicons name="time-outline" size={24} color={colors.proyectos} />
-            <Text style={styles.tipTitle}>Time Blocking</Text>
+            <Text style={styles.tipTitle}>{t('time_blocking')}</Text>
           </View>
           <Text style={styles.tipDescription}>
-            Divide tu proyecto en bloques de tiempo de 25-50 minutos con descansos.
-            Esto ayuda a mantener el enfoque con TDAH.
+            {t('time_blocking_desc')}
           </Text>
         </Card>
 
@@ -177,12 +182,12 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
         {data.projects.length === 0 ? (
           <Card style={styles.emptyCard}>
             <Ionicons name="folder-open-outline" size={48} color={colors.textLight} />
-            <Text style={styles.emptyTitle}>No tienes proyectos</Text>
+            <Text style={styles.emptyTitle}>{t('no_projects')}</Text>
             <Text style={styles.emptyText}>
-              Crea un proyecto para organizar tareas relacionadas y dar seguimiento a tu progreso.
+              {t('no_projects_desc')}
             </Text>
             <Button
-              title="Crear primer proyecto"
+              title={t('create_first_project')}
               onPress={() => setShowAddModal(true)}
               variant="primary"
               color={colors.proyectos}
@@ -198,13 +203,10 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
         <Card style={styles.tipsCard}>
           <View style={styles.tipsHeader}>
             <Ionicons name="bulb" size={20} color={colors.orange} />
-            <Text style={styles.tipsTitle}>Tips para TDAH</Text>
+            <Text style={styles.tipsTitle}>{t('tips_tdah')}</Text>
           </View>
           <Text style={styles.tipsText}>
-            • Divide proyectos grandes en tareas pequeñas{'\n'}
-            • Establece fechas límite realistas{'\n'}
-            • Celebra cada tarea completada{'\n'}
-            • Si te sientes abrumado/a, enfócate solo en la siguiente tarea
+            {t('tips_tdah_content')}
           </Text>
         </Card>
       </ScrollView>
@@ -214,7 +216,7 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Nuevo Proyecto</Text>
+              <Text style={styles.modalTitle}>{t('new_project')}</Text>
               <TouchableOpacity onPress={() => setShowAddModal(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -222,25 +224,25 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
 
             <ScrollView showsVerticalScrollIndicator={false}>
               <Input
-                label="Nombre del proyecto"
-                placeholder="Ej: Rediseño del sitio web"
+                label={t('project_name')}
+                placeholder={t('project_name_placeholder')}
                 value={projectName}
                 onChangeText={setProjectName}
               />
 
               <Input
-                label="Descripción"
-                placeholder="¿De qué trata este proyecto?"
+                label={t('project_desc')}
+                placeholder={t('project_desc_placeholder')}
                 value={projectDescription}
                 onChangeText={setProjectDescription}
                 multiline
               />
 
-              <Text style={styles.inputLabel}>Tareas del proyecto</Text>
+              <Text style={styles.inputLabel}>{t('project_tasks')}</Text>
               {projectTasks.map((task, index) => (
                 <Input
                   key={index}
-                  placeholder={`Tarea ${index + 1}`}
+                  placeholder={t('task_placeholder', { number: index + 1 })}
                   value={task}
                   onChangeText={(value) => {
                     const newTasks = [...projectTasks];
@@ -254,11 +256,11 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
                 onPress={() => setProjectTasks([...projectTasks, ''])}
               >
                 <Ionicons name="add" size={20} color={colors.proyectos} />
-                <Text style={styles.addTaskText}>Agregar tarea</Text>
+                <Text style={styles.addTaskText}>{t('add_task')}</Text>
               </TouchableOpacity>
 
               <Button
-                title="Crear Proyecto"
+                title={t('create_project')}
                 onPress={handleAddProject}
                 variant="primary"
                 color={colors.proyectos}
@@ -290,6 +292,14 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
                   </TouchableOpacity>
                 </View>
 
+                <TouchableOpacity 
+                    style={styles.focusButton}
+                    onPress={() => setShowFocusTimer(true)}
+                >
+                    <Ionicons name="timer-outline" size={20} color={colors.white} />
+                    <Text style={styles.focusButtonText}>{t('start_focus_session')}</Text>
+                </TouchableOpacity>
+
                 {selectedProject.description && (
                   <Text style={styles.detailDescription}>{selectedProject.description}</Text>
                 )}
@@ -298,11 +308,11 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
                   progress={getProjectProgress(selectedProject)}
                   color={getStatusColor(selectedProject.status)}
                   showLabel
-                  label="Progreso total"
+                  label={t('progress_label')}
                   height={12}
                 />
 
-                <Text style={styles.tasksTitle}>Tareas</Text>
+                <Text style={styles.tasksTitle}>{t('project_tasks')}</Text>
                 <ScrollView style={styles.tasksList}>
                   {selectedProject.tasks.map((task) => (
                     <CheckBox
@@ -316,7 +326,7 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
                 </ScrollView>
 
                 <Button
-                  title="Cerrar"
+                  title={t('close')}
                   onPress={() => setSelectedProject(null)}
                   variant="outline"
                   color={colors.proyectos}
@@ -327,6 +337,15 @@ export const ProyectosScreen: React.FC<ProyectosScreenProps> = ({ navigation }) 
           </View>
         </View>
       </Modal>
+
+      {/* Focus Timer Modal */}
+      {selectedProject && (
+          <FocusTimerModal 
+            visible={showFocusTimer}
+            onClose={() => setShowFocusTimer(false)}
+            projectName={selectedProject.name}
+          />
+      )}
     </SafeAreaView>
   );
 };
@@ -563,4 +582,20 @@ const styles = StyleSheet.create({
   closeButton: {
     marginTop: spacing.lg,
   },
+  focusButton: {
+      backgroundColor: colors.proyectos,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.md,
+      borderRadius: borderRadius.lg,
+      marginBottom: spacing.md,
+      gap: spacing.sm,
+      ...shadows.sm,
+  },
+  focusButtonText: {
+      color: colors.white,
+      fontWeight: fontWeight.bold,
+      fontSize: fontSize.md,
+  }
 });
