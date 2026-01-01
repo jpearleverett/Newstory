@@ -1,0 +1,10 @@
+export { HomeScreen } from './HomeScreen';
+export { TuAnoScreen } from './TuAnoScreen';
+export { MetasScreen } from './MetasScreen';
+export { AutoconocimientoScreen } from './AutoconocimientoScreen';
+export { PriorizacionScreen } from './PriorizacionScreen';
+export { ProyectosScreen } from './ProyectosScreen';
+export { DiarioScreen } from './DiarioScreen';
+export { CasaScreen } from './CasaScreen';
+export { DineroScreen } from './DineroScreen';
+export { AutocuidadoScreen } from './AutocuidadoScreen';
