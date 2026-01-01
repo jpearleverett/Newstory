@@ -1,16 +1,8 @@
-import React from 'react';
-import { Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator, Pressable } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import React, { useRef } from 'react';
+import { Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator, Pressable, Animated, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, borderRadius, fontSize, fontWeight, shadows, animation } from '../styles/theme';
 import haptic from '../utils/haptics';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface ButtonProps {
   title: string;
@@ -45,22 +37,35 @@ export const Button: React.FC<ButtonProps> = ({
   fullWidth = true,
   hapticFeedback = true,
 }) => {
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const opacityAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.96, animation.springBouncy);
-    opacity.value = withTiming(0.9, { duration: animation.fast });
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 0.96,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0.9,
+        duration: animation.fast,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const handlePressOut = () => {
-    scale.value = withSpring(1, animation.spring);
-    opacity.value = withTiming(1, { duration: animation.fast });
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: animation.fast,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const handlePress = () => {
@@ -126,35 +131,51 @@ export const Button: React.FC<ButtonProps> = ({
   // Use gradient for primary buttons if gradientColors provided
   if (variant === 'primary' && gradientColors && !disabled) {
     return (
-      <AnimatedPressable
+      <Pressable
         onPress={handlePress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled || loading}
-        style={[animatedStyle, fullWidth && styles.fullWidth]}
+        style={fullWidth ? styles.fullWidth : undefined}
       >
-        <LinearGradient
-          colors={gradientColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={[styles.base, sizeStyles[size], shadows.sm, style, styles.gradient]}
+        <Animated.View
+          style={{
+            transform: [{ scale: scaleAnim }],
+            opacity: opacityAnim,
+          }}
         >
-          {content}
-        </LinearGradient>
-      </AnimatedPressable>
+          <LinearGradient
+            colors={gradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[styles.base, sizeStyles[size], shadows.sm, style, styles.gradient]}
+          >
+            {content}
+          </LinearGradient>
+        </Animated.View>
+      </Pressable>
     );
   }
 
   return (
-    <AnimatedPressable
-      style={[buttonStyles, animatedStyle]}
+    <Pressable
       onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={disabled || loading}
     >
-      {content}
-    </AnimatedPressable>
+      <Animated.View
+        style={[
+          buttonStyles,
+          {
+            transform: [{ scale: scaleAnim }],
+            opacity: opacityAnim,
+          },
+        ]}
+      >
+        {content}
+      </Animated.View>
+    </Pressable>
   );
 };
 

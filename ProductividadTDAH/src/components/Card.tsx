@@ -1,15 +1,7 @@
-import React, { ReactNode } from 'react';
-import { View, StyleSheet, ViewStyle, Pressable } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import React, { ReactNode, useRef } from 'react';
+import { View, StyleSheet, ViewStyle, Pressable, Animated } from 'react-native';
 import { colors, spacing, borderRadius, shadows, animation } from '../styles/theme';
 import haptic from '../utils/haptics';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface CardProps {
   children: ReactNode;
@@ -30,25 +22,38 @@ export const Card: React.FC<CardProps> = ({
   hapticFeedback = true,
   animated = true,
 }) => {
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const opacityAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
     if (animated && onPress) {
-      scale.value = withSpring(0.98, animation.spring);
-      opacity.value = withTiming(0.9, { duration: animation.fast });
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 0.98,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 0.9,
+          duration: animation.fast,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
   };
 
   const handlePressOut = () => {
     if (animated && onPress) {
-      scale.value = withSpring(1, animation.spring);
-      opacity.value = withTiming(1, { duration: animation.fast });
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: animation.fast,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
   };
 
@@ -70,18 +75,27 @@ export const Card: React.FC<CardProps> = ({
 
   if (onPress) {
     return (
-      <AnimatedPressable
-        style={[cardStyle, animatedStyle]}
+      <Pressable
         onPress={handlePress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
       >
-        {children}
-      </AnimatedPressable>
+        <Animated.View
+          style={[
+            cardStyle,
+            {
+              transform: [{ scale: scaleAnim }],
+              opacity: opacityAnim,
+            },
+          ]}
+        >
+          {children}
+        </Animated.View>
+      </Pressable>
     );
   }
 
-  return <Animated.View style={[cardStyle, animated && animatedStyle]}>{children}</Animated.View>;
+  return <View style={cardStyle}>{children}</View>;
 };
 
 const styles = StyleSheet.create({
