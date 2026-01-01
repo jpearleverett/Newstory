@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, SafeAreaView, Modal } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
 import { Card, Button, Input, CheckBox } from '../components';

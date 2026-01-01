@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, SafeAreaView, TextInput } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';

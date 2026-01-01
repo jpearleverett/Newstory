@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, SafeAreaView, Animated, Dimensions } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, Animated, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, fontWeight, borderRadius, shadows, animation } from '../styles/theme';
