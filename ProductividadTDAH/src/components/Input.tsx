@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, Text, StyleSheet, TextInputProps, ViewStyle } from 'react-native';
+import { View, TextInput, Text, StyleSheet, TextInputProps, ViewStyle, Animated } from 'react-native';
 import { colors, spacing, borderRadius, fontSize } from '../styles/theme';
 
 interface InputProps extends TextInputProps {
@@ -28,7 +28,7 @@ export const Input: React.FC<InputProps> = ({
           isFocused && styles.focused,
           error && styles.error,
         ]}
-        placeholderTextColor={colors.textLight}
+        placeholderTextColor={colors.textMuted}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         multiline={multiline}
@@ -47,29 +47,31 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.text,
     marginBottom: spacing.xs,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   input: {
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.backgroundDark,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     fontSize: fontSize.md,
     color: colors.text,
   },
   multiline: {
-    minHeight: 100,
+    minHeight: 120,
     textAlignVertical: 'top',
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
   },
   focused: {
-    borderColor: colors.olive,
+    borderColor: colors.primary,
     borderWidth: 2,
+    backgroundColor: colors.white,
   },
   error: {
     borderColor: colors.error,
+    backgroundColor: colors.errorLight,
   },
   errorText: {
     fontSize: fontSize.xs,

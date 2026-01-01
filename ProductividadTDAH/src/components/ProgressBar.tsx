@@ -12,8 +12,8 @@ interface ProgressBarProps {
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({
   progress,
-  color = colors.olive,
-  height = 8,
+  color = colors.primary,
+  height = 10,
   showLabel = false,
   label,
 }) => {
@@ -46,6 +46,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
+    marginVertical: spacing.xs,
   },
   labelContainer: {
     flexDirection: 'row',
@@ -55,6 +56,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: fontSize.sm,
     color: colors.text,
+    fontWeight: '500',
   },
   percentage: {
     fontSize: fontSize.sm,

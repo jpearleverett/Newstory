@@ -31,18 +31,22 @@ export const CheckBox: React.FC<CheckBoxProps> = ({
     Animated.spring(checkAnim, {
       toValue: checked ? 1 : 0,
       useNativeDriver: true,
+      damping: 15,
+      stiffness: 200,
     }).start();
   }, [checked]);
 
   const handlePress = () => {
     // Bounce animation
     Animated.sequence([
-      Animated.spring(scaleAnim, {
+      Animated.timing(scaleAnim, {
         toValue: 0.85,
+        duration: 100,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
+        friction: 4,
         useNativeDriver: true,
       }),
     ]).start();
@@ -51,7 +55,7 @@ export const CheckBox: React.FC<CheckBoxProps> = ({
     if (!checked) {
       haptic.success();
     } else {
-      haptic.light();
+      haptic.selection();
     }
 
     onToggle();
@@ -66,7 +70,7 @@ export const CheckBox: React.FC<CheckBoxProps> = ({
             width: boxSize,
             height: boxSize,
             backgroundColor: checked ? color : 'transparent',
-            borderColor: checked ? color : colors.textLight,
+            borderColor: checked ? color : colors.textMuted,
             transform: [{ scale: scaleAnim }],
           },
         ]}
@@ -102,7 +106,7 @@ const styles = StyleSheet.create({
   },
   box: {
     borderWidth: 2,
-    borderRadius: borderRadius.sm + 2,
+    borderRadius: borderRadius.md, // More rounded
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -115,6 +119,7 @@ const styles = StyleSheet.create({
   },
   checkedLabel: {
     textDecorationLine: 'line-through',
-    color: colors.textLight,
+    color: colors.textMuted,
+    opacity: 0.7,
   },
 });

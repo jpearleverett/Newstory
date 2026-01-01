@@ -4,74 +4,79 @@
 
 export const colors = {
   // Primary backgrounds - warm, calming cream tones
-  background: '#FAF8F5',        // Warm off-white
+  background: '#FAF9F6',        // Warm off-white (Paper white)
   backgroundLight: '#FFFFFF',   // Pure white for cards
-  backgroundDark: '#F0EDE8',    // Slightly darker cream
-  backgroundMuted: '#E8E4DF',   // Muted background
+  backgroundDark: '#F2EFE9',    // Slightly darker cream
+  backgroundMuted: '#EAE6DF',   // Muted background
 
   // Brand colors - Totally TDAH identity (sage/olive green)
-  primary: '#8B9A6D',           // Sage green - main brand color
-  primaryLight: '#A8B88C',      // Light sage
-  primaryDark: '#6B7A4D',       // Dark sage
-  primaryMuted: '#8B9A6D20',    // Sage with opacity
+  primary: '#7A8C5A',           // Deeper Sage green - better contrast
+  primaryLight: '#9CB078',      // Light sage
+  primaryDark: '#5E6E42',       // Dark sage
+  primaryMuted: 'rgba(122, 140, 90, 0.15)',    // Sage with opacity
 
   // Keep olive aliases for backwards compatibility
-  olive: '#8B9A6D',
-  oliveLight: '#A8B88C',
-  oliveDark: '#6B7A4D',
+  olive: '#7A8C5A',
+  oliveLight: '#9CB078',
+  oliveDark: '#5E6E42',
 
   // Accent colors - warm terracotta/coral
-  accent: '#E8A86B',            // Warm terracotta
-  accentLight: '#F2C89B',       // Light terracotta
-  accentDark: '#D8884B',        // Dark terracotta
-
+  accent: '#E08E55',            // Richer Terracotta
+  accentLight: '#F5CBA7',       // Light terracotta
+  accentDark: '#C27035',        // Dark terracotta
+  
+  // Highlight - for fun/focus elements
+  highlight: '#FFD166',         // Soft Yellow/Gold
+  highlightLight: '#FFE8B3',
+  
   // Secondary - dusty rose/pink
-  pink: '#D4A0A0',              // Dusty rose
-  pinkLight: '#E8C4C4',         // Light dusty rose
-  pinkDark: '#B48080',          // Dark dusty rose
+  pink: '#D68C98',              // Richer Dusty rose
+  pinkLight: '#EAC4CA',         // Light dusty rose
+  pinkDark: '#B36672',          // Dark dusty rose
 
   // Orange tones
-  orange: '#E8A86B',
-  orangeLight: '#F2C89B',
-  orangeDark: '#D8884B',
+  orange: '#E08E55',
+  orangeLight: '#F5CBA7',
+  orangeDark: '#C27035',
 
   // Functional colors
-  text: '#3D3D3D',              // Main text - soft black
-  textLight: '#6B6B6B',         // Secondary text
-  textMuted: '#9B9B9B',         // Muted text
-  textDark: '#2D2D2D',          // Headings
+  text: '#2C3E50',              // Main text - Dark Blue-Grey (Better readability than soft black)
+  textLight: '#5D6D7E',         // Secondary text
+  textMuted: '#95A5A6',         // Muted text
+  textDark: '#1A252F',          // Headings
   white: '#FFFFFF',
   black: '#1A1A1A',
 
   // Status colors - muted versions for ADHD-friendly experience
-  success: '#8B9A6D',           // Sage green
-  successLight: '#8B9A6D20',
-  warning: '#E8A86B',           // Warm amber
-  warningLight: '#E8A86B20',
-  error: '#D48080',             // Soft red
-  errorLight: '#D4808020',
-  info: '#8090B8',              // Soft blue
-  infoLight: '#8090B820',
+  success: '#7A8C5A',           // Sage green
+  successLight: 'rgba(122, 140, 90, 0.15)',
+  warning: '#E08E55',           // Warm amber
+  warningLight: 'rgba(224, 142, 85, 0.15)',
+  error: '#D98880',             // Soft red
+  errorLight: 'rgba(217, 136, 128, 0.15)',
+  info: '#7FB3D5',              // Soft blue
+  infoLight: 'rgba(127, 179, 213, 0.15)',
 
-  // Section colors - each section has its own identity
-  tuAno: '#8B9A6D',             // Sage - calm, grounding
-  metas: '#D4A0A0',             // Dusty rose - inspiring
-  autoconocimiento: '#E8A86B',  // Terracotta - warm, introspective
-  priorizacion: '#8090B8',      // Soft blue - clarity
-  proyectos: '#9888B8',         // Soft purple - creative
-  diario: '#8B9A6D',            // Sage - consistent
-  casa: '#B8A088',              // Warm taupe - homey
-  dinero: '#88B8A0',            // Soft teal - growth
-  autocuidado: '#B888A0',       // Mauve - nurturing
+  // Section colors - each section has its own identity (Slightly more vibrant)
+  tuAno: '#7A8C5A',             // Sage
+  metas: '#D68C98',             // Rose
+  autoconocimiento: '#E08E55',  // Terracotta
+  priorizacion: '#7FB3D5',      // Soft blue
+  proyectos: '#A569BD',         // Purple
+  diario: '#52BE80',            // Green
+  casa: '#D35400',              // Burnt Orange
+  dinero: '#1ABC9C',            // Teal
+  autocuidado: '#EC7063',       // Red-Pink
 
   // Gradient combinations (for LinearGradient)
   gradients: {
-    primary: ['#8B9A6D', '#A8B88C'] as [string, string],
-    accent: ['#E8A86B', '#F2C89B'] as [string, string],
-    rose: ['#D4A0A0', '#E8C4C4'] as [string, string],
-    warm: ['#FAF8F5', '#F0EDE8'] as [string, string],
-    hero: ['#8B9A6D', '#6B7A4D'] as [string, string],
-    sunset: ['#E8A86B', '#D4A0A0'] as [string, string],
+    primary: ['#7A8C5A', '#9CB078'] as [string, string],
+    accent: ['#E08E55', '#F5CBA7'] as [string, string],
+    rose: ['#D68C98', '#EAC4CA'] as [string, string],
+    warm: ['#FAF9F6', '#F2EFE9'] as [string, string],
+    hero: ['#7A8C5A', '#5E6E42'] as [string, string],
+    sunset: ['#E08E55', '#D68C98'] as [string, string],
+    ocean: ['#7FB3D5', '#5499C7'] as [string, string],
   },
 
   // Overlay colors
@@ -91,25 +96,25 @@ export const spacing = {
 };
 
 export const borderRadius = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  xxl: 32,
+  xs: 6,
+  sm: 10,
+  md: 16,
+  lg: 20,
+  xl: 28,
+  xxl: 36,
   round: 9999,
 };
 
 export const fontSize = {
-  xs: 11,
-  sm: 13,
-  md: 15,
-  lg: 17,
-  xl: 22,
-  xxl: 28,
-  xxxl: 34,
-  title: 42,
-  display: 52,
+  xs: 12,
+  sm: 14,
+  md: 16,
+  lg: 18,
+  xl: 24,
+  xxl: 30,
+  xxxl: 36,
+  title: 44,
+  display: 56,
 };
 
 export const fontWeight = {
@@ -135,38 +140,38 @@ export const shadows = {
     elevation: 0,
   },
   xs: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
+    shadowColor: '#2C3E50',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
     elevation: 1,
   },
   sm: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
+    shadowColor: '#2C3E50',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     elevation: 2,
   },
   md: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowColor: '#2C3E50',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
     elevation: 4,
   },
   lg: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
+    shadowColor: '#2C3E50',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
     elevation: 8,
   },
   xl: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
+    shadowColor: '#2C3E50',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.18,
+    shadowRadius: 28,
     elevation: 12,
   },
 };
@@ -174,18 +179,18 @@ export const shadows = {
 // Create a colored glow shadow
 export const glowShadow = (color: string, intensity: number = 0.3) => ({
   shadowColor: color,
-  shadowOffset: { width: 0, height: 4 },
+  shadowOffset: { width: 0, height: 8 },
   shadowOpacity: intensity,
-  shadowRadius: 12,
+  shadowRadius: 16,
   elevation: 8,
 });
 
 // Animation configuration
 export const animation = {
   // Durations
-  fast: 150,
-  normal: 250,
-  slow: 400,
+  fast: 200,
+  normal: 300,
+  slow: 500,
 
   // Spring configs for react-native-reanimated
   spring: {
@@ -194,8 +199,8 @@ export const animation = {
     mass: 1,
   },
   springBouncy: {
-    damping: 12,
-    stiffness: 180,
+    damping: 10,
+    stiffness: 200,
     mass: 0.8,
   },
   springGentle: {
