@@ -97,6 +97,53 @@ export interface Reflection {
   response: string;
 }
 
+// User session and energy state tracking
+export interface UserSession {
+  lastOpenedAt: string;  // ISO timestamp
+  currentEnergyLevel: number; // 0-100 scale
+  hasCompletedEnergyCheck: boolean;
+  streakDays: number;
+  backlogTasks: string[]; // Tasks swept during Sunrise Reset
+}
+
+// Manifestation 369 entries
+export interface ManifestationEntry {
+  id: string;
+  date: string;
+  intention: string;
+  morningCount: number;
+  afternoonCount: number;
+  eveningCount: number;
+}
+
+// Vision Board items
+export interface VisionItem {
+  id: string;
+  imageUri?: string;
+  text: string;
+  feeling?: string;
+}
+
+export interface VisionBoard {
+  tenYear: VisionItem[];
+  oneYear: VisionItem[];
+}
+
+// 30-Day Simplifier Challenge
+export interface SimplifierChallenge {
+  startDate: string;
+  completedDays: number[];
+}
+
+// Impulse Pause reminders
+export interface ImpulseReminder {
+  id: string;
+  item: string;
+  scheduledFor: string; // ISO timestamp
+  isNeed: boolean;
+  dismissed: boolean;
+}
+
 interface AppData {
   goals: Goal[];
   dailyEntries: DailyEntry[];
@@ -109,6 +156,11 @@ interface AppData {
   yearlyIntentions: YearlyIntention[];
   reflections: Reflection[];
   brainDumps: { id: string; date: string; items: string[] }[];
+  userSession: UserSession;
+  manifestations: ManifestationEntry[];
+  visionBoard: VisionBoard;
+  simplifierChallenge: SimplifierChallenge;
+  impulseReminders: ImpulseReminder[];
 }
 
 interface DataContextType {
@@ -151,7 +203,37 @@ interface DataContextType {
   addReflection: (reflection: Omit<Reflection, 'id'>) => Promise<void>;
   // Brain Dumps
   addBrainDump: (items: string[]) => Promise<void>;
+  // User Session & Energy
+  updateUserSession: (updates: Partial<UserSession>) => Promise<void>;
+  setEnergyLevel: (level: number) => Promise<void>;
+  completeEnergyCheck: () => Promise<void>;
+  checkNeedsSunriseReset: () => boolean;
+  performSunriseReset: () => Promise<void>;
+  getHoursSinceLastOpen: () => number;
+  // Manifestations
+  addManifestation: (intention: string) => Promise<void>;
+  updateManifestation: (id: string, period: 'morning' | 'afternoon' | 'evening') => Promise<void>;
+  getTodayManifestation: () => ManifestationEntry | undefined;
+  // Vision Board
+  updateVisionBoard: (timeframe: '10year' | '1year', items: VisionItem[]) => Promise<void>;
+  getVisionBoard: () => VisionBoard;
+  // Simplifier Challenge
+  startSimplifierChallenge: () => Promise<void>;
+  completeSimplifierDay: (day: number) => Promise<void>;
+  getSimplifierProgress: () => { currentDay: number; completedDays: number[] };
+  // Impulse Reminders
+  addImpulseReminder: (item: string) => Promise<void>;
+  dismissImpulseReminder: (id: string) => Promise<void>;
+  getPendingReminders: () => ImpulseReminder[];
 }
+
+const defaultUserSession: UserSession = {
+  lastOpenedAt: new Date().toISOString(),
+  currentEnergyLevel: 50,
+  hasCompletedEnergyCheck: false,
+  streakDays: 0,
+  backlogTasks: [],
+};
 
 const defaultData: AppData = {
   goals: [],
@@ -165,6 +247,11 @@ const defaultData: AppData = {
   yearlyIntentions: [],
   reflections: [],
   brainDumps: [],
+  userSession: defaultUserSession,
+  manifestations: [],
+  visionBoard: { tenYear: [], oneYear: [] },
+  simplifierChallenge: { startDate: '', completedDays: [] },
+  impulseReminders: [],
 };
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -371,6 +458,207 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await saveData({ ...data, brainDumps: [...data.brainDumps, newDump] });
   };
 
+  // User Session & Energy Management
+  const updateUserSession = async (updates: Partial<UserSession>) => {
+    const currentSession = data.userSession || defaultUserSession;
+    const updatedSession = { ...currentSession, ...updates };
+    await saveData({ ...data, userSession: updatedSession });
+  };
+
+  const setEnergyLevel = async (level: number) => {
+    await updateUserSession({
+      currentEnergyLevel: Math.max(0, Math.min(100, level)),
+      lastOpenedAt: new Date().toISOString()
+    });
+  };
+
+  const completeEnergyCheck = async () => {
+    await updateUserSession({
+      hasCompletedEnergyCheck: true,
+      lastOpenedAt: new Date().toISOString()
+    });
+  };
+
+  const getHoursSinceLastOpen = (): number => {
+    const session = data.userSession || defaultUserSession;
+    const lastOpened = new Date(session.lastOpenedAt);
+    const now = new Date();
+    return (now.getTime() - lastOpened.getTime()) / (1000 * 60 * 60);
+  };
+
+  const checkNeedsSunriseReset = (): boolean => {
+    const hoursSinceOpen = getHoursSinceLastOpen();
+    return hoursSinceOpen >= 48;
+  };
+
+  const performSunriseReset = async () => {
+    // Get today's date
+    const today = new Date().toISOString().split('T')[0];
+
+    // Find overdue tasks from daily entries (not today)
+    const todayEntry = data.dailyEntries.find(e => e.date === today);
+    const overdueTasks: string[] = [];
+
+    // Collect incomplete planned tasks from previous days
+    data.dailyEntries.forEach(entry => {
+      if (entry.date !== today && entry.planned) {
+        const incomplete = entry.planned.filter(task =>
+          !entry.acted?.includes(task)
+        );
+        overdueTasks.push(...incomplete);
+      }
+    });
+
+    // Also collect incomplete Eisenhower tasks from urgent-important quadrant
+    const urgentTasks = data.eisenhowerTasks
+      .filter(t => t.quadrant === 'urgent-important' && !t.completed)
+      .map(t => t.text);
+
+    const allBacklog = [...overdueTasks, ...urgentTasks];
+
+    // Update session with backlog and reset energy check
+    await updateUserSession({
+      backlogTasks: allBacklog,
+      hasCompletedEnergyCheck: false,
+      lastOpenedAt: new Date().toISOString(),
+    });
+  };
+
+  // Manifestation 369 Methods
+  const addManifestation = async (intention: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    const existing = data.manifestations.find(m => m.date === today);
+
+    if (existing) {
+      // Update existing with new intention
+      const updated = data.manifestations.map(m =>
+        m.date === today ? { ...m, intention } : m
+      );
+      await saveData({ ...data, manifestations: updated });
+    } else {
+      const newManifestation: ManifestationEntry = {
+        id: generateId(),
+        date: today,
+        intention,
+        morningCount: 0,
+        afternoonCount: 0,
+        eveningCount: 0,
+      };
+      await saveData({
+        ...data,
+        manifestations: [...data.manifestations, newManifestation]
+      });
+    }
+  };
+
+  const updateManifestation = async (
+    id: string,
+    period: 'morning' | 'afternoon' | 'evening'
+  ) => {
+    const countKey = `${period}Count` as 'morningCount' | 'afternoonCount' | 'eveningCount';
+    const updated = data.manifestations.map(m => {
+      if (m.id === id) {
+        const currentCount = m[countKey];
+        const maxCount = period === 'morning' ? 3 : period === 'afternoon' ? 6 : 9;
+        return {
+          ...m,
+          [countKey]: Math.min(currentCount + 1, maxCount)
+        };
+      }
+      return m;
+    });
+    await saveData({ ...data, manifestations: updated });
+  };
+
+  const getTodayManifestation = (): ManifestationEntry | undefined => {
+    const today = new Date().toISOString().split('T')[0];
+    return data.manifestations.find(m => m.date === today);
+  };
+
+  // Vision Board Methods
+  const updateVisionBoard = async (timeframe: '10year' | '1year', items: VisionItem[]) => {
+    const visionBoard = data.visionBoard || { tenYear: [], oneYear: [] };
+    const updated = {
+      ...visionBoard,
+      [timeframe === '10year' ? 'tenYear' : 'oneYear']: items,
+    };
+    await saveData({ ...data, visionBoard: updated });
+  };
+
+  const getVisionBoard = (): VisionBoard => {
+    return data.visionBoard || { tenYear: [], oneYear: [] };
+  };
+
+  // Simplifier Challenge Methods
+  const startSimplifierChallenge = async () => {
+    const challenge: SimplifierChallenge = {
+      startDate: new Date().toISOString().split('T')[0],
+      completedDays: [],
+    };
+    await saveData({ ...data, simplifierChallenge: challenge });
+  };
+
+  const completeSimplifierDay = async (day: number) => {
+    const challenge = data.simplifierChallenge || { startDate: '', completedDays: [] };
+    if (!challenge.completedDays.includes(day)) {
+      const updated = {
+        ...challenge,
+        completedDays: [...challenge.completedDays, day].sort((a, b) => a - b),
+      };
+      await saveData({ ...data, simplifierChallenge: updated });
+    }
+  };
+
+  const getSimplifierProgress = (): { currentDay: number; completedDays: number[] } => {
+    const challenge = data.simplifierChallenge || { startDate: '', completedDays: [] };
+    if (!challenge.startDate) {
+      return { currentDay: 1, completedDays: [] };
+    }
+
+    const startDate = new Date(challenge.startDate);
+    const today = new Date();
+    const diffTime = today.getTime() - startDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    const currentDay = Math.min(Math.max(1, diffDays), 30);
+
+    return {
+      currentDay,
+      completedDays: challenge.completedDays,
+    };
+  };
+
+  // Impulse Reminder Methods
+  const addImpulseReminder = async (item: string) => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(10, 0, 0, 0); // 10 AM tomorrow
+
+    const reminder: ImpulseReminder = {
+      id: generateId(),
+      item,
+      scheduledFor: tomorrow.toISOString(),
+      isNeed: false,
+      dismissed: false,
+    };
+
+    const reminders = [...(data.impulseReminders || []), reminder];
+    await saveData({ ...data, impulseReminders: reminders });
+  };
+
+  const dismissImpulseReminder = async (id: string) => {
+    const reminders = (data.impulseReminders || []).map(r =>
+      r.id === id ? { ...r, dismissed: true } : r
+    );
+    await saveData({ ...data, impulseReminders: reminders });
+  };
+
+  const getPendingReminders = (): ImpulseReminder[] => {
+    const now = new Date().toISOString();
+    return (data.impulseReminders || []).filter(
+      r => !r.dismissed && r.scheduledFor <= now
+    );
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -402,6 +690,28 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setYearlyIntention,
         addReflection,
         addBrainDump,
+        // User Session & Energy
+        updateUserSession,
+        setEnergyLevel,
+        completeEnergyCheck,
+        checkNeedsSunriseReset,
+        performSunriseReset,
+        getHoursSinceLastOpen,
+        // Manifestations
+        addManifestation,
+        updateManifestation,
+        getTodayManifestation,
+        // Vision Board
+        updateVisionBoard,
+        getVisionBoard,
+        // Simplifier Challenge
+        startSimplifierChallenge,
+        completeSimplifierDay,
+        getSimplifierProgress,
+        // Impulse Reminders
+        addImpulseReminder,
+        dismissImpulseReminder,
+        getPendingReminders,
       }}
     >
       {children}

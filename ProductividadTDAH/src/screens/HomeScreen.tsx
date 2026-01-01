@@ -13,20 +13,54 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { colors, spacing, fontSize, fontWeight, borderRadius, shadows } from '../styles/theme';
+import {
+  colors,
+  spacing,
+  fontSize,
+  fontWeight,
+  borderRadius,
+  shadows,
+  getEnergyMode,
+  getVisibleSections,
+  getEnergyTheme,
+  energyThemes,
+} from '../styles/theme';
 import { useData, DailyEntry } from '../context/DataContext';
 import { useLanguage } from '../i18n/LanguageContext';
 import haptic from '../utils/haptics';
-import { MorningRitualModal, BrainDumpModal } from '../components';
+import {
+  MorningRitualModal,
+  BrainDumpModal,
+  EnergyCheckModal,
+  SunriseResetModal,
+  DayTimelineBar,
+  BodyDoublingCounter,
+  ManifestationModal,
+  VoiceBrainDumpModal,
+  ParsedItem,
+} from '../components';
 
 interface HomeScreenProps {
   navigation: any;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
-  const { getDailyEntry, addDailyEntry, addBrainDump } = useData();
+  const {
+    getDailyEntry,
+    addDailyEntry,
+    addBrainDump,
+    data,
+    checkNeedsSunriseReset,
+    performSunriseReset,
+    setEnergyLevel,
+    completeEnergyCheck,
+    updateUserSession,
+    addManifestation,
+    updateManifestation,
+    getTodayManifestation,
+  } = useData();
   const { t, language } = useLanguage();
-  
+
   const today = format(new Date(), 'yyyy-MM-dd');
   const dateLocale = language === 'es' ? es : enUS;
   const dayName = format(new Date(), "EEEE", { locale: dateLocale });
@@ -48,6 +82,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [showCheckin, setShowCheckin] = useState(true);
   const [showMorningModal, setShowMorningModal] = useState(false);
   const [showBrainDumpModal, setShowBrainDumpModal] = useState(false);
+
+  // New Compassionate Computing States
+  const [showEnergyCheck, setShowEnergyCheck] = useState(false);
+  const [showSunriseReset, setShowSunriseReset] = useState(false);
+  const [showManifestationModal, setShowManifestationModal] = useState(false);
+  const [showVoiceDumpModal, setShowVoiceDumpModal] = useState(false);
+
+  // Get current energy level from session
+  const currentEnergyLevel = data.userSession?.currentEnergyLevel ?? 50;
+  const energyMode = getEnergyMode(currentEnergyLevel);
+  const visibleSections = getVisibleSections(currentEnergyLevel);
+  const energyTheme = getEnergyTheme(currentEnergyLevel);
+
+  // Track if 369 manifestation has been shown this period
+  const [manifestation369Shown, setManifestation369Shown] = useState<string | null>(null);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -77,6 +126,27 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       }
     }
 
+    // Check for Compassionate Computing flows
+    const initializeCompassionateFlows = async () => {
+      // Check if we need a Sunrise Reset (48+ hours since last open)
+      if (checkNeedsSunriseReset()) {
+        setShowSunriseReset(true);
+        return; // Show sunrise first, then energy check
+      }
+
+      // Check if energy check is needed today
+      const session = data.userSession;
+      if (session && !session.hasCompletedEnergyCheck) {
+        // Small delay for better UX
+        setTimeout(() => setShowEnergyCheck(true), 500);
+      }
+
+      // Update last opened time
+      await updateUserSession({ lastOpenedAt: new Date().toISOString() });
+    };
+
+    initializeCompassionateFlows();
+
     // Entrance animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -90,7 +160,49 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [language]); // Re-run when language changes to update labels
+
+    // 369 Manifestation Auto-Trigger
+    const check369Manifestation = () => {
+      const hour = new Date().getHours();
+      const manifestation = getTodayManifestation();
+
+      // Define time periods: Morning (6-11), Afternoon (12-17), Evening (18-22)
+      let currentPeriod: 'morning' | 'afternoon' | 'evening' | null = null;
+      if (hour >= 6 && hour < 12) currentPeriod = 'morning';
+      else if (hour >= 12 && hour < 18) currentPeriod = 'afternoon';
+      else if (hour >= 18 && hour < 23) currentPeriod = 'evening';
+
+      if (currentPeriod && manifestation369Shown !== currentPeriod) {
+        // Check if this period's count is not yet complete
+        if (manifestation) {
+          const counts = {
+            morning: { current: manifestation.morningCount, max: 3 },
+            afternoon: { current: manifestation.afternoonCount, max: 6 },
+            evening: { current: manifestation.eveningCount, max: 9 },
+          };
+
+          if (counts[currentPeriod].current < counts[currentPeriod].max) {
+            // Show manifestation modal after a delay
+            setTimeout(() => {
+              setShowManifestationModal(true);
+              setManifestation369Shown(currentPeriod);
+            }, 2000);
+          }
+        } else if (currentPeriod === 'morning') {
+          // No manifestation yet, prompt to create one in the morning
+          setTimeout(() => {
+            setShowManifestationModal(true);
+            setManifestation369Shown(currentPeriod);
+          }, 2000);
+        }
+      }
+    };
+
+    // Only check 369 after compassionate flows are done
+    if (!showEnergyCheck && !showSunriseReset) {
+      check369Manifestation();
+    }
+  }, [language, showEnergyCheck, showSunriseReset]); // Re-run when language changes or modals close
 
   const saveEntry = async (updates: Partial<DailyEntry>) => {
     const updatedEntry = { ...entry, ...updates };
@@ -133,6 +245,77 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       await saveEntry({ dump: updatedDump });
       haptic.success();
     }
+  };
+
+  // Compassionate Computing Handlers
+  const handleEnergyComplete = async (level: number) => {
+    await setEnergyLevel(level);
+    await completeEnergyCheck();
+    setShowEnergyCheck(false);
+    haptic.success();
+  };
+
+  const handleSunriseReset = async () => {
+    await performSunriseReset();
+    setShowSunriseReset(false);
+    // Show energy check after sunrise
+    setTimeout(() => setShowEnergyCheck(true), 500);
+  };
+
+  const handleViewBacklog = () => {
+    setShowSunriseReset(false);
+    // Navigate to a backlog view or show in Más tab
+    navigation.navigate('Mas');
+  };
+
+  const handleManifestationIntention = async (intention: string) => {
+    await addManifestation(intention);
+  };
+
+  const handleManifestationIncrement = async (period: 'morning' | 'afternoon' | 'evening') => {
+    const manifestation = getTodayManifestation();
+    if (manifestation) {
+      await updateManifestation(manifestation.id, period);
+    }
+  };
+
+  const handleVoiceDumpSave = async (items: ParsedItem[]) => {
+    // Process each item based on its category
+    const taskItems = items.filter(item => item.category === 'task');
+    const shoppingItems = items.filter(item => item.category === 'shopping');
+    const journalItems = items.filter(item => item.category === 'journal');
+    const projectItems = items.filter(item => item.category === 'project');
+    const selfCareItems = items.filter(item => item.category === 'self_care');
+    const homeItems = items.filter(item => item.category === 'home');
+
+    // Add tasks to today's planned (up to max 3)
+    if (taskItems.length > 0) {
+      const currentPlanned = entry.planned || [];
+      const availableSlots = 3 - currentPlanned.length;
+      if (availableSlots > 0) {
+        const newTasks = taskItems.slice(0, availableSlots).map(item => item.text);
+        await saveEntry({ planned: [...currentPlanned, ...newTasks] });
+      }
+    }
+
+    // Add all other items to brain dump for later organization
+    const dumpItems = [
+      ...shoppingItems.map(item => `[Compras] ${item.text}`),
+      ...journalItems.map(item => `[Diario] ${item.text}`),
+      ...projectItems.map(item => `[Proyecto] ${item.text}`),
+      ...selfCareItems.map(item => `[Autocuidado] ${item.text}`),
+      ...homeItems.map(item => `[Casa] ${item.text}`),
+      // Tasks that didn't fit in planned
+      ...taskItems.slice(3 - (entry.planned?.length || 0)).map(item => `[Tarea] ${item.text}`),
+    ];
+
+    if (dumpItems.length > 0) {
+      await addBrainDump(dumpItems);
+      const updatedDump = [...(entry.dump || []), ...dumpItems];
+      await saveEntry({ dump: updatedDump });
+    }
+
+    haptic.success();
   };
 
   const handleMoodSelect = (value: number) => {
@@ -181,8 +364,27 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const totalCount = entry.planned?.length || 0;
   const hasCheckedIn = entry.mood !== undefined && entry.mood >= 0;
 
+  // Dynamic styles based on energy level
+  const dynamicStyles = {
+    safeArea: {
+      backgroundColor: energyTheme.background,
+    },
+    dayName: {
+      color: energyTheme.text,
+    },
+    dateString: {
+      color: energyTheme.textSecondary,
+    },
+    focusCard: {
+      backgroundColor: energyTheme.backgroundCard,
+    },
+    primary: {
+      color: energyTheme.primary,
+    },
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, dynamicStyles.safeArea]}>
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
@@ -198,10 +400,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           {/* Header - Simple, focused on TODAY */}
           <View style={styles.header}>
             <View style={styles.dateContainer}>
-              <Text style={styles.dayName}>
+              <Text style={[styles.dayName, dynamicStyles.dayName]}>
                 {dayName.charAt(0).toUpperCase() + dayName.slice(1)}
               </Text>
-              <Text style={styles.dateString}>{dateString}</Text>
+              <Text style={[styles.dateString, dynamicStyles.dateString]}>{dateString}</Text>
             </View>
             {totalCount > 0 && (
               <View style={styles.progressBadge}>
@@ -211,6 +413,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               </View>
             )}
           </View>
+
+          {/* Day Timeline Bar - Visceral time visualization */}
+          {visibleSections.showTimeline && (
+            <DayTimelineBar compact />
+          )}
+
+          {/* Body Doubling Counter - You're not alone */}
+          <BodyDoublingCounter compact />
 
             {/* Morning Ritual Call to Action - Only if no tasks planned yet */}
             {totalCount === 0 && (
@@ -312,10 +522,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           )}
 
           {/* Main Focus Card - THE core feature */}
-          <View style={styles.focusCard}>
+          <View style={[styles.focusCard, dynamicStyles.focusCard]}>
             <View style={styles.focusHeader}>
-              <Ionicons name="sunny" size={24} color={colors.primary} />
-              <Text style={styles.focusTitle}>{t('focus_title')}</Text>
+              <Ionicons name="sunny" size={24} color={energyTheme.primary} />
+              <Text style={[styles.focusTitle, dynamicStyles.dayName]}>{t('focus_title')}</Text>
             </View>
 
             <Text style={styles.focusSubtitle}>
@@ -440,27 +650,78 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
+
+          {/* 369 Manifestation Quick Access */}
+          <TouchableOpacity
+            style={styles.manifestationButton}
+            onPress={() => setShowManifestationModal(true)}
+          >
+            <View style={styles.manifestationContent}>
+              <Text style={styles.manifestationEmoji}>✨</Text>
+              <View style={styles.manifestationTextContainer}>
+                <Text style={styles.manifestationTitle}>{t('manifestation_title')}</Text>
+                <Text style={styles.manifestationSubtitle}>{t('manifestation_subtitle')}</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
         </Animated.View>
       </ScrollView>
 
-      {/* FAB for Brain Dump */}
-      <TouchableOpacity 
-        style={styles.fab}
-        onPress={() => setShowBrainDumpModal(true)}
+      {/* FAB for Voice Brain Dump - Primary */}
+      <TouchableOpacity
+        style={styles.fabPrimary}
+        onPress={() => setShowVoiceDumpModal(true)}
       >
-        <Ionicons name="bulb" size={28} color={colors.white} />
+        <Ionicons name="mic" size={32} color={colors.white} />
       </TouchableOpacity>
 
-      <MorningRitualModal 
+      {/* Secondary FAB for Text Brain Dump */}
+      <TouchableOpacity
+        style={styles.fabSecondary}
+        onPress={() => setShowBrainDumpModal(true)}
+      >
+        <Ionicons name="bulb" size={24} color={colors.white} />
+      </TouchableOpacity>
+
+      <MorningRitualModal
         visible={showMorningModal}
         onClose={() => setShowMorningModal(false)}
         onComplete={handleMorningComplete}
       />
-      
+
       <BrainDumpModal
         visible={showBrainDumpModal}
         onClose={() => setShowBrainDumpModal(false)}
         onSubmit={handleBrainDumpSubmit}
+      />
+
+      {/* Compassionate Computing Modals */}
+      <EnergyCheckModal
+        visible={showEnergyCheck}
+        onClose={() => setShowEnergyCheck(false)}
+        onComplete={handleEnergyComplete}
+      />
+
+      <SunriseResetModal
+        visible={showSunriseReset}
+        backlogCount={data.userSession?.backlogTasks?.length || 0}
+        onReset={handleSunriseReset}
+        onViewBacklog={handleViewBacklog}
+      />
+
+      <ManifestationModal
+        visible={showManifestationModal}
+        onClose={() => setShowManifestationModal(false)}
+        manifestation={getTodayManifestation()}
+        onSetIntention={handleManifestationIntention}
+        onIncrement={handleManifestationIncrement}
+      />
+
+      <VoiceBrainDumpModal
+        visible={showVoiceDumpModal}
+        onClose={() => setShowVoiceDumpModal(false)}
+        onComplete={handleVoiceDumpSave}
       />
     </SafeAreaView>
   );
@@ -805,17 +1066,65 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textLight,
   },
-  fab: {
+  fabPrimary: {
     position: 'absolute',
     bottom: spacing.xl,
     right: spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.pink,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     ...shadows.lg,
     zIndex: 100,
+  },
+  fabSecondary: {
+    position: 'absolute',
+    bottom: spacing.xl + 72,
+    right: spacing.lg + 8,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.pink,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.md,
+    zIndex: 100,
+  },
+  // Manifestation Button
+  manifestationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.white,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: '#667eea',
+    ...shadows.xs,
+  },
+  manifestationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: spacing.md,
+  },
+  manifestationEmoji: {
+    fontSize: 24,
+  },
+  manifestationTextContainer: {
+    flex: 1,
+  },
+  manifestationTitle: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.textDark,
+  },
+  manifestationSubtitle: {
+    fontSize: fontSize.sm,
+    color: colors.textLight,
   },
 });

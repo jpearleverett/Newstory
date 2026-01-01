@@ -217,3 +217,121 @@ export const layout = {
   borderWidth: 1,
   borderWidthThick: 2,
 };
+
+// Energy-Adaptive Theming
+// These themes change based on the user's energy level for a more compassionate experience
+export type EnergyMode = 'low' | 'medium' | 'high';
+
+export const getEnergyMode = (energyLevel: number): EnergyMode => {
+  if (energyLevel < 35) return 'low';
+  if (energyLevel < 70) return 'medium';
+  return 'high';
+};
+
+export const energyThemes = {
+  low: {
+    // Soft, calming colors for low energy days
+    background: '#1a1a2e',           // Deep night blue
+    backgroundLight: '#16213e',       // Slightly lighter
+    backgroundCard: '#0f3460',        // Dark blue card
+    text: '#a8b2d1',                  // Soft gray-blue
+    textSecondary: '#8892b0',         // Muted
+    primary: '#7B68EE',               // Soft lavender
+    accent: '#B39DDB',                // Light purple
+    gradient: ['#1a1a2e', '#16213e', '#0f3460'] as [string, string, string],
+    statusBarStyle: 'light-content' as const,
+    motivationalMessage: 'Rest is productive. Be gentle with yourself.',
+  },
+  medium: {
+    // Warm, balanced colors for normal energy
+    background: colors.background,
+    backgroundLight: colors.backgroundLight,
+    backgroundCard: colors.white,
+    text: colors.text,
+    textSecondary: colors.textLight,
+    primary: colors.primary,
+    accent: colors.accent,
+    gradient: ['#FAF9F6', '#F2EFE9', '#EAE6DF'] as [string, string, string],
+    statusBarStyle: 'dark-content' as const,
+    motivationalMessage: 'You\'ve got this. One step at a time.',
+  },
+  high: {
+    // Vibrant, energizing colors for high energy days
+    background: '#FFFEF0',            // Warm white
+    backgroundLight: '#FFF9E6',       // Sunny cream
+    backgroundCard: '#FFFFFF',
+    text: '#1A252F',                  // Strong dark
+    textSecondary: '#2C3E50',
+    primary: '#27AE60',               // Vibrant green
+    accent: '#F39C12',                // Energetic orange
+    gradient: ['#a8e6cf', '#88d8b0', '#56ab2f'] as [string, string, string],
+    statusBarStyle: 'dark-content' as const,
+    motivationalMessage: 'Channel this energy! What\'s your big move today?',
+  },
+};
+
+// Get theme based on energy level (0-100)
+export const getEnergyTheme = (energyLevel: number) => {
+  const mode = getEnergyMode(energyLevel);
+  return energyThemes[mode];
+};
+
+// Sections visibility based on energy level
+export const getVisibleSections = (energyLevel: number) => {
+  const mode = getEnergyMode(energyLevel);
+
+  switch (mode) {
+    case 'low':
+      // Low energy: Only show essential self-care and simple tasks
+      return {
+        showProjects: false,
+        showGoals: false,
+        showFinance: false,
+        showAutocuidado: true,
+        showCasa: true,      // Simple home tasks can be grounding
+        showDiario: true,
+        showTimeline: false, // Don't add time pressure
+        showFullCheckin: false,
+        maxTasks: 1,         // Just one thing
+      };
+    case 'medium':
+      // Medium energy: Show most features
+      return {
+        showProjects: true,
+        showGoals: true,
+        showFinance: true,
+        showAutocuidado: true,
+        showCasa: true,
+        showDiario: true,
+        showTimeline: true,
+        showFullCheckin: true,
+        maxTasks: 3,
+      };
+    case 'high':
+      // High energy: Show everything with encouragement to tackle big things
+      return {
+        showProjects: true,
+        showGoals: true,
+        showFinance: true,
+        showAutocuidado: true,
+        showCasa: true,
+        showDiario: true,
+        showTimeline: true,
+        showFullCheckin: true,
+        maxTasks: 3,
+        showProjectsProminent: true, // Encourage tackling bigger tasks
+      };
+    default:
+      return {
+        showProjects: true,
+        showGoals: true,
+        showFinance: true,
+        showAutocuidado: true,
+        showCasa: true,
+        showDiario: true,
+        showTimeline: true,
+        showFullCheckin: true,
+        maxTasks: 3,
+      };
+  }
+};
