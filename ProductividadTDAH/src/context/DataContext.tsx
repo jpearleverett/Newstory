@@ -1,0 +1,418 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Types for all the data structures
+export interface Goal {
+  id: string;
+  category: string;
+  title: string;
+  description: string;
+  deadline?: string;
+  progress: number;
+  steps: { id: string; text: string; completed: boolean }[];
+  createdAt: string;
+}
+
+export interface DailyEntry {
+  id: string;
+  date: string;
+  gratitude: string[];
+  mood: number;
+  energyLevel: number;
+  dump: string[];
+  organized: string[];
+  planned: string[];
+  acted: string[];
+  notes: string;
+}
+
+export interface HabitTracker {
+  id: string;
+  name: string;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  completedDates: string[];
+  color: string;
+}
+
+export interface EisenhowerTask {
+  id: string;
+  text: string;
+  quadrant: 'urgent-important' | 'not-urgent-important' | 'urgent-not-important' | 'not-urgent-not-important';
+  completed: boolean;
+  createdAt: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  deadline?: string;
+  tasks: { id: string; text: string; completed: boolean; dueDate?: string }[];
+  timeBlocks: { id: string; task: string; duration: number; completed: boolean }[];
+  status: 'not-started' | 'in-progress' | 'completed';
+}
+
+export interface Expense {
+  id: string;
+  date: string;
+  category: string;
+  description: string;
+  amount: number;
+  isNeed: boolean;
+  isImpulse: boolean;
+}
+
+export interface SelfCareEntry {
+  id: string;
+  date: string;
+  water: number;
+  sleep: number;
+  exercise: { type: string; duration: number } | null;
+  meals: { breakfast: string; lunch: string; dinner: string; snacks: string[] };
+  meditation: number;
+  gratitude: string[];
+  wins: string[];
+}
+
+export interface HomeTask {
+  id: string;
+  room: string;
+  task: string;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  completedDates: string[];
+}
+
+export interface YearlyIntention {
+  year: number;
+  word: string;
+  intentions: string[];
+  celebrations: string[];
+}
+
+export interface Reflection {
+  id: string;
+  date: string;
+  type: 'strength' | 'weakness' | 'growth' | 'values' | 'general';
+  prompt: string;
+  response: string;
+}
+
+interface AppData {
+  goals: Goal[];
+  dailyEntries: DailyEntry[];
+  habits: HabitTracker[];
+  eisenhowerTasks: EisenhowerTask[];
+  projects: Project[];
+  expenses: Expense[];
+  selfCare: SelfCareEntry[];
+  homeTasks: HomeTask[];
+  yearlyIntentions: YearlyIntention[];
+  reflections: Reflection[];
+  brainDumps: { id: string; date: string; items: string[] }[];
+}
+
+interface DataContextType {
+  data: AppData;
+  loading: boolean;
+  // Goals
+  addGoal: (goal: Omit<Goal, 'id' | 'createdAt'>) => Promise<void>;
+  updateGoal: (id: string, updates: Partial<Goal>) => Promise<void>;
+  deleteGoal: (id: string) => Promise<void>;
+  // Daily Entries
+  addDailyEntry: (entry: Omit<DailyEntry, 'id'>) => Promise<void>;
+  updateDailyEntry: (id: string, updates: Partial<DailyEntry>) => Promise<void>;
+  getDailyEntry: (date: string) => DailyEntry | undefined;
+  // Habits
+  addHabit: (habit: Omit<HabitTracker, 'id' | 'completedDates'>) => Promise<void>;
+  toggleHabitDay: (habitId: string, date: string) => Promise<void>;
+  deleteHabit: (id: string) => Promise<void>;
+  // Eisenhower Tasks
+  addEisenhowerTask: (task: Omit<EisenhowerTask, 'id' | 'createdAt'>) => Promise<void>;
+  updateEisenhowerTask: (id: string, updates: Partial<EisenhowerTask>) => Promise<void>;
+  deleteEisenhowerTask: (id: string) => Promise<void>;
+  // Projects
+  addProject: (project: Omit<Project, 'id'>) => Promise<void>;
+  updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
+  // Expenses
+  addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
+  // Self Care
+  addSelfCareEntry: (entry: Omit<SelfCareEntry, 'id'>) => Promise<void>;
+  updateSelfCareEntry: (id: string, updates: Partial<SelfCareEntry>) => Promise<void>;
+  getSelfCareEntry: (date: string) => SelfCareEntry | undefined;
+  // Home Tasks
+  addHomeTask: (task: Omit<HomeTask, 'id' | 'completedDates'>) => Promise<void>;
+  toggleHomeTaskDay: (taskId: string, date: string) => Promise<void>;
+  deleteHomeTask: (id: string) => Promise<void>;
+  // Yearly Intentions
+  setYearlyIntention: (intention: YearlyIntention) => Promise<void>;
+  // Reflections
+  addReflection: (reflection: Omit<Reflection, 'id'>) => Promise<void>;
+  // Brain Dumps
+  addBrainDump: (items: string[]) => Promise<void>;
+}
+
+const defaultData: AppData = {
+  goals: [],
+  dailyEntries: [],
+  habits: [],
+  eisenhowerTasks: [],
+  projects: [],
+  expenses: [],
+  selfCare: [],
+  homeTasks: [],
+  yearlyIntentions: [],
+  reflections: [],
+  brainDumps: [],
+};
+
+const DataContext = createContext<DataContextType | undefined>(undefined);
+
+const STORAGE_KEY = '@productividad_tdah_data';
+
+export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [data, setData] = useState<AppData>(defaultData);
+  const [loading, setLoading] = useState(true);
+
+  // Load data on mount
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        setData(JSON.parse(stored));
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveData = async (newData: AppData) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
+      setData(newData);
+    } catch (error) {
+      console.error('Error saving data:', error);
+    }
+  };
+
+  const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
+
+  // Goals
+  const addGoal = async (goal: Omit<Goal, 'id' | 'createdAt'>) => {
+    const newGoal: Goal = { ...goal, id: generateId(), createdAt: new Date().toISOString() };
+    await saveData({ ...data, goals: [...data.goals, newGoal] });
+  };
+
+  const updateGoal = async (id: string, updates: Partial<Goal>) => {
+    const goals = data.goals.map(g => g.id === id ? { ...g, ...updates } : g);
+    await saveData({ ...data, goals });
+  };
+
+  const deleteGoal = async (id: string) => {
+    await saveData({ ...data, goals: data.goals.filter(g => g.id !== id) });
+  };
+
+  // Daily Entries
+  const addDailyEntry = async (entry: Omit<DailyEntry, 'id'>) => {
+    const existing = data.dailyEntries.find(e => e.date === entry.date);
+    if (existing) {
+      await updateDailyEntry(existing.id, entry);
+    } else {
+      const newEntry: DailyEntry = { ...entry, id: generateId() };
+      await saveData({ ...data, dailyEntries: [...data.dailyEntries, newEntry] });
+    }
+  };
+
+  const updateDailyEntry = async (id: string, updates: Partial<DailyEntry>) => {
+    const entries = data.dailyEntries.map(e => e.id === id ? { ...e, ...updates } : e);
+    await saveData({ ...data, dailyEntries: entries });
+  };
+
+  const getDailyEntry = (date: string) => data.dailyEntries.find(e => e.date === date);
+
+  // Habits
+  const addHabit = async (habit: Omit<HabitTracker, 'id' | 'completedDates'>) => {
+    const newHabit: HabitTracker = { ...habit, id: generateId(), completedDates: [] };
+    await saveData({ ...data, habits: [...data.habits, newHabit] });
+  };
+
+  const toggleHabitDay = async (habitId: string, date: string) => {
+    const habits = data.habits.map(h => {
+      if (h.id === habitId) {
+        const hasDate = h.completedDates.includes(date);
+        return {
+          ...h,
+          completedDates: hasDate
+            ? h.completedDates.filter(d => d !== date)
+            : [...h.completedDates, date],
+        };
+      }
+      return h;
+    });
+    await saveData({ ...data, habits });
+  };
+
+  const deleteHabit = async (id: string) => {
+    await saveData({ ...data, habits: data.habits.filter(h => h.id !== id) });
+  };
+
+  // Eisenhower Tasks
+  const addEisenhowerTask = async (task: Omit<EisenhowerTask, 'id' | 'createdAt'>) => {
+    const newTask: EisenhowerTask = { ...task, id: generateId(), createdAt: new Date().toISOString() };
+    await saveData({ ...data, eisenhowerTasks: [...data.eisenhowerTasks, newTask] });
+  };
+
+  const updateEisenhowerTask = async (id: string, updates: Partial<EisenhowerTask>) => {
+    const tasks = data.eisenhowerTasks.map(t => t.id === id ? { ...t, ...updates } : t);
+    await saveData({ ...data, eisenhowerTasks: tasks });
+  };
+
+  const deleteEisenhowerTask = async (id: string) => {
+    await saveData({ ...data, eisenhowerTasks: data.eisenhowerTasks.filter(t => t.id !== id) });
+  };
+
+  // Projects
+  const addProject = async (project: Omit<Project, 'id'>) => {
+    const newProject: Project = { ...project, id: generateId() };
+    await saveData({ ...data, projects: [...data.projects, newProject] });
+  };
+
+  const updateProject = async (id: string, updates: Partial<Project>) => {
+    const projects = data.projects.map(p => p.id === id ? { ...p, ...updates } : p);
+    await saveData({ ...data, projects });
+  };
+
+  const deleteProject = async (id: string) => {
+    await saveData({ ...data, projects: data.projects.filter(p => p.id !== id) });
+  };
+
+  // Expenses
+  const addExpense = async (expense: Omit<Expense, 'id'>) => {
+    const newExpense: Expense = { ...expense, id: generateId() };
+    await saveData({ ...data, expenses: [...data.expenses, newExpense] });
+  };
+
+  const deleteExpense = async (id: string) => {
+    await saveData({ ...data, expenses: data.expenses.filter(e => e.id !== id) });
+  };
+
+  // Self Care
+  const addSelfCareEntry = async (entry: Omit<SelfCareEntry, 'id'>) => {
+    const existing = data.selfCare.find(e => e.date === entry.date);
+    if (existing) {
+      await updateSelfCareEntry(existing.id, entry);
+    } else {
+      const newEntry: SelfCareEntry = { ...entry, id: generateId() };
+      await saveData({ ...data, selfCare: [...data.selfCare, newEntry] });
+    }
+  };
+
+  const updateSelfCareEntry = async (id: string, updates: Partial<SelfCareEntry>) => {
+    const entries = data.selfCare.map(e => e.id === id ? { ...e, ...updates } : e);
+    await saveData({ ...data, selfCare: entries });
+  };
+
+  const getSelfCareEntry = (date: string) => data.selfCare.find(e => e.date === date);
+
+  // Home Tasks
+  const addHomeTask = async (task: Omit<HomeTask, 'id' | 'completedDates'>) => {
+    const newTask: HomeTask = { ...task, id: generateId(), completedDates: [] };
+    await saveData({ ...data, homeTasks: [...data.homeTasks, newTask] });
+  };
+
+  const toggleHomeTaskDay = async (taskId: string, date: string) => {
+    const tasks = data.homeTasks.map(t => {
+      if (t.id === taskId) {
+        const hasDate = t.completedDates.includes(date);
+        return {
+          ...t,
+          completedDates: hasDate
+            ? t.completedDates.filter(d => d !== date)
+            : [...t.completedDates, date],
+        };
+      }
+      return t;
+    });
+    await saveData({ ...data, homeTasks: tasks });
+  };
+
+  const deleteHomeTask = async (id: string) => {
+    await saveData({ ...data, homeTasks: data.homeTasks.filter(t => t.id !== id) });
+  };
+
+  // Yearly Intentions
+  const setYearlyIntention = async (intention: YearlyIntention) => {
+    const existing = data.yearlyIntentions.findIndex(y => y.year === intention.year);
+    let intentions = [...data.yearlyIntentions];
+    if (existing >= 0) {
+      intentions[existing] = intention;
+    } else {
+      intentions.push(intention);
+    }
+    await saveData({ ...data, yearlyIntentions: intentions });
+  };
+
+  // Reflections
+  const addReflection = async (reflection: Omit<Reflection, 'id'>) => {
+    const newReflection: Reflection = { ...reflection, id: generateId() };
+    await saveData({ ...data, reflections: [...data.reflections, newReflection] });
+  };
+
+  // Brain Dumps
+  const addBrainDump = async (items: string[]) => {
+    const newDump = { id: generateId(), date: new Date().toISOString(), items };
+    await saveData({ ...data, brainDumps: [...data.brainDumps, newDump] });
+  };
+
+  return (
+    <DataContext.Provider
+      value={{
+        data,
+        loading,
+        addGoal,
+        updateGoal,
+        deleteGoal,
+        addDailyEntry,
+        updateDailyEntry,
+        getDailyEntry,
+        addHabit,
+        toggleHabitDay,
+        deleteHabit,
+        addEisenhowerTask,
+        updateEisenhowerTask,
+        deleteEisenhowerTask,
+        addProject,
+        updateProject,
+        deleteProject,
+        addExpense,
+        deleteExpense,
+        addSelfCareEntry,
+        updateSelfCareEntry,
+        getSelfCareEntry,
+        addHomeTask,
+        toggleHomeTaskDay,
+        deleteHomeTask,
+        setYearlyIntention,
+        addReflection,
+        addBrainDump,
+      }}
+    >
+      {children}
+    </DataContext.Provider>
+  );
+};
+
+export const useData = () => {
+  const context = useContext(DataContext);
+  if (!context) {
+    throw new Error('useData must be used within a DataProvider');
+  }
+  return context;
+};
